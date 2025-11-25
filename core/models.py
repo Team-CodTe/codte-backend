@@ -106,3 +106,37 @@ class Study(models.Model):
             code = secrets.token_urlsafe(8)[:8].upper()
             if not Study.objects.filter(invite_code=code).exists():
                 return code
+
+
+class StudyMember(models.Model):
+    """스터디 멤버 모델"""
+    study = models.ForeignKey(
+        'Study',
+        on_delete=models.CASCADE,
+        related_name='members',
+        verbose_name='스터디'
+    )
+    user = models.ForeignKey(
+        'User',
+        on_delete=models.CASCADE,
+        related_name='study_memberships',
+        verbose_name='사용자'
+    )
+    role = models.CharField(
+        max_length=10,
+        choices=StudyRole.choices,
+        verbose_name='역할'
+    )
+    joined_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='가입일시'
+    )
+
+    class Meta:
+        db_table = 'study_members'
+        unique_together = [('study', 'user')]
+        verbose_name = '스터디 멤버'
+        verbose_name_plural = '스터디 멤버들'
+
+    def __str__(self):
+        return f"{self.user.email} - {self.study.name} ({self.role})"
