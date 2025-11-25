@@ -168,3 +168,80 @@ class Problem(models.Model):
 
     def __str__(self):
         return f"{self.boj_number}: {self.title}"
+
+
+class DailyAssignment(models.Model):
+    """일일 과제 모델"""
+    study = models.ForeignKey(
+        'Study',
+        on_delete=models.CASCADE,
+        related_name='daily_assignments',
+        verbose_name='스터디'
+    )
+    problem = models.ForeignKey(
+        'Problem',
+        on_delete=models.CASCADE,
+        related_name='assignments',
+        verbose_name='문제'
+    )
+    assigned_date = models.DateField(
+        db_index=True,
+        verbose_name='할당일'
+    )
+    is_custom = models.BooleanField(
+        default=False,
+        verbose_name='커스텀 문제 여부'
+    )
+
+    class Meta:
+        db_table = 'daily_assignments'
+        unique_together = [('study', 'problem', 'assigned_date')]
+        ordering = ['-assigned_date']
+        verbose_name = '일일 과제'
+        verbose_name_plural = '일일 과제들'
+
+    def __str__(self):
+        return f"{self.study.name} - {self.problem.title} ({self.assigned_date})"
+
+
+class SolutionNote(models.Model):
+    """풀이 노트 모델"""
+    study = models.ForeignKey(
+        'Study',
+        on_delete=models.CASCADE,
+        related_name='solution_notes',
+        verbose_name='스터디'
+    )
+    user = models.ForeignKey(
+        'User',
+        on_delete=models.CASCADE,
+        related_name='solution_notes',
+        verbose_name='사용자'
+    )
+    problem = models.ForeignKey(
+        'Problem',
+        on_delete=models.CASCADE,
+        related_name='solution_notes',
+        verbose_name='문제'
+    )
+    content = models.TextField(
+        verbose_name='내용'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='수정일시'
+    )
+
+    class Meta:
+        db_table = 'solution_notes'
+        unique_together = [('study', 'user', 'problem')]
+        ordering = ['-created_at']
+        verbose_name = '풀이 노트'
+        verbose_name_plural = '풀이 노트들'
+
+    def __str__(self):
+        return f"{self.user.email} - {self.problem.title} ({self.study.name})"
