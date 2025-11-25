@@ -140,3 +140,31 @@ class StudyMember(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.study.name} ({self.role})"
+
+
+class Problem(models.Model):
+    """문제 모델"""
+    boj_number = models.IntegerField(
+        unique=True,
+        db_index=True,
+        verbose_name='백준 문제 번호'
+    )
+    title = models.CharField(
+        max_length=200,
+        verbose_name='문제 제목'
+    )
+    tier = models.CharField(
+        max_length=20,
+        verbose_name='티어'
+    )
+    link = models.URLField(
+        verbose_name='문제 링크'
+    )
+
+    class Meta:
+        db_table = 'problems'
+        verbose_name = '문제'
+        verbose_name_plural = '문제들'
+
+    def __str__(self):
+        return f"{self.boj_number}: {self.title}"
