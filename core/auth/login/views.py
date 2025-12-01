@@ -10,13 +10,13 @@ class SocialLoginView(APIView):
     def post(self, request, provider):
         access_token = request.data.get("access_token")
 
-        email = "None"
+        user_data = None
 
         try:
             if provider == "github":
-                email = self.validate_github(access_token)
+                user_data = self.validate_github(access_token)
             elif provider == "google":
-                email = self.validate_google(access_token)
+                user_data = self.validate_google(access_token)
             else:
                 return Response(
                     {"error": "유효하지 않은 소셜 로그인 제공자입니다."},
@@ -28,14 +28,34 @@ class SocialLoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if email == "None":
+        email = user_data.get("email")
+        profile_img_url = user_data.get("profile_img_url")
+
+        if not email:
             return Response(
                 {"error": "계정 정보를 찾을 수 없습니다."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        existing_user = User.objects.filter(email=email).first()
+
+        if existing_user and existing_user.provider != provider:
+            return Response(
+                {
+                    "error": "이미 {}로 가입된 이메일입니다.".format(
+                        existing_user.provider
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         user, created = User.objects.get_or_create(
-            username=email, defaults={"email": email, "provider": provider}
+            username=email, # 우선 username을 email로 고정하고, 회원가입할 때 username을 다시 입력받게 함
+            defaults={
+                "email": email,
+                "provider": provider,
+                "profile_img_url": profile_img_url,
+            },
         )
 
         refresh = RefreshToken.for_user(user)
@@ -43,8 +63,14 @@ class SocialLoginView(APIView):
         refresh_token = str(refresh)
 
         response_data = {
-            "message": "Login success",
-            "user": {"id": user.id, "email": user.email},
+            "message": "로그인에 성공했습니다.",
+            "user": {
+                "id": user.id,
+                "provider": user.provider,
+                "username": user.username,
+                "email": user.email,
+                "profile_img_url": user.profile_img_url,
+            },
             "requires_registration": created,
         }
 
@@ -76,7 +102,10 @@ class SocialLoginView(APIView):
 
         user_info = response.json()
 
-        return user_info.get("email")
+        return {
+            "email": user_info.get("email"),
+            "profile_img_url": user_info.get("picture"),
+        }
 
     def validate_github(self, access_token):
         user_url = "https://api.github.com/user"
@@ -101,4 +130,7 @@ class SocialLoginView(APIView):
                         email = e["email"]
                         break
 
-        return email
+        return {
+            "email": email,
+            "profile_img_url": user_data.get("avatar_url"),
+        }
