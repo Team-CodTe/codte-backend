@@ -18,7 +18,9 @@ class SocialLoginView(APIView):
 
         try:
             user_data = service.fetch_user_info(provider, access_token)
-            user, created = service.login_or_create_user(provider, user_data)
+            user, is_registration_required = service.login_or_create_user(
+                provider, user_data
+            )
         except ValueError as e:
             return Response(
                 {"error": str(e)},
@@ -30,7 +32,6 @@ class SocialLoginView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        # JWT 생성
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
@@ -46,7 +47,7 @@ class SocialLoginView(APIView):
                     "boj_username": user.boj_username,
                     "profile_img_url": user.profile_img_url,
                 },
-                "requires_registration": created,
+                "requires_registration": is_registration_required,
             },
             status=status.HTTP_200_OK,
         )

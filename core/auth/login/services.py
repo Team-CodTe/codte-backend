@@ -26,34 +26,31 @@ class SocialLoginService:
         if not email:
             raise ValueError("계정 정보를 찾을 수 없습니다.")
 
-        existing_user = self.user_model.objects.filter(email=email).first()
+        user, user_created = self.user_model.objects.get_or_create(
+            email=email,
+            defaults={
+                "username": email,
+                "provider": provider,
+                "profile_img_url": profile_img_url,
+            },
+        )
 
-        if existing_user and existing_user.provider != provider:
+        if user.provider != provider:
             raise ValueError(
-                "이미 {}계정으로 가입된 이메일입니다.".format(existing_user.provider)
+                "이미 {}계정으로 가입된 이메일입니다.".format(user.provider)
             )
 
-        try:
-            with transaction.atomic():
-                if existing_user:
-                    user = existing_user
-                    created = False
+        if (
+            not user_created
+            and profile_img_url
+            and user.profile_img_url != profile_img_url
+        ):
+            user.profile_img_url = profile_img_url
+            user.save(update_fields=["profile_img_url"])
 
-                    if profile_img_url:
-                        user.profile_img_url = profile_img_url
-                        user.save(update_fields=["profile_img_url"])
-                else:
-                    user = self.user_model.objects.create(
-                        username=email,
-                        email=email,
-                        provider=provider,
-                        profile_img_url=profile_img_url,
-                    )
-                    created = True
-        except IntegrityError:
-            raise
+        is_registration_required = user_created or (user.boj_username is None)
 
-        return user, created
+        return user, is_registration_required
 
     def _fetch_google_user(self, access_token: str) -> dict:
         try:
