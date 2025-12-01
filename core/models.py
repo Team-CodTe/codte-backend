@@ -25,7 +25,7 @@ class User(AbstractUser):
         max_length=20, choices=Provider.choices, verbose_name="소셜 로그인 제공자"
     )
     boj_username = models.CharField(
-        max_length=50, blank=True, null=True, verbose_name="백준 사용자명"
+        max_length=50, unique=True, blank=True, null=True, verbose_name="백준 사용자명"
     )
     profile_img_url = models.URLField(
         blank=True, null=True, verbose_name="프로필 이미지 URL"

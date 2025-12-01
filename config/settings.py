@@ -68,7 +68,8 @@ CORS_ALLOW_CREDENTIALS = True
 # REST Framework 설정
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        # 커스텀 JWT 인증
+        "core.auth.authentication.CustomJWTAuthentication",
     ),
 }
 
