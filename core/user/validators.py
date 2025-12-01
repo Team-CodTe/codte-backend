@@ -3,6 +3,8 @@ from rest_framework import serializers
 
 from core.models import User
 
+SOLVED_AC_USER_API_URL = "https://solved.ac/api/v3/user/show?handle={handle}"
+
 
 def validate_username_for_user(user, value: str) -> str:
     if User.objects.filter(username=value).exclude(id=user.id).exists():
@@ -17,7 +19,7 @@ def validate_boj_username_for_user(user, value: str) -> str:
 
     try:
         response = requests.get(
-            f"https://solved.ac/api/v3/user/show?handle={value}",
+            SOLVED_AC_USER_API_URL.format(handle=value),
             timeout=5,
         )
         if response.status_code == 404:

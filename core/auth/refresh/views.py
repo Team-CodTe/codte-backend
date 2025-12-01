@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.exceptions import TokenError
+from django.conf import settings
 
 
 class TokenRefreshView(APIView):
@@ -36,7 +37,7 @@ class TokenRefreshView(APIView):
         cookie_kwargs = {
             "httponly": True,
             "samesite": "Lax",
-            "secure": False,  # 배포 시 True로 변경 필요(https 옵션)
+            "secure": not settings.DEBUG,
         }
 
         response.set_cookie("access_token", new_access_token, **cookie_kwargs)
