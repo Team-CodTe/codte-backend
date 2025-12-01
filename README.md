@@ -133,6 +133,7 @@ poetry run python manage.py check
 Django 관리자 페이지에 접근하려면:
 
 1. 관리자 계정을 생성합니다:
+
    ```bash
    poetry run python manage.py createsuperuser
    ```
@@ -190,4 +191,3 @@ poetry run python manage.py runserver 8001
 ## 📄 라이선스
 
 이 프로젝트의 라이선스 정보는 프로젝트 소유자에게 문의하세요.
-
