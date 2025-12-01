@@ -80,35 +80,30 @@ class SocialLoginView(APIView):
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
 
-        response_data = {
-            "message": "로그인에 성공했습니다.",
-            "user": {
-                "id": user.id,
-                "provider": user.provider,
-                "email": user.email,
-                "username": user.username,
-                "boj_username": user.boj_username,
-                "profile_img_url": user.profile_img_url,
+        response = Response(
+            {
+                "message": "로그인에 성공했습니다.",
+                "user": {
+                    "id": user.id,
+                    "provider": user.provider,
+                    "email": user.email,
+                    "username": user.username,
+                    "boj_username": user.boj_username,
+                    "profile_img_url": user.profile_img_url,
+                },
+                "requires_registration": created,
             },
-            "requires_registration": created,
+            status=status.HTTP_200_OK,
+        )
+
+        cookie_kwargs = {
+            "httponly": True,
+            "samesite": "Lax",
+            "secure": False,  # 배포 시 True로 변경 필요(https 옵션)
         }
 
-        response = Response(response_data, status=status.HTTP_200_OK)
-
-        response.set_cookie(
-            "access_token",
-            access_token,
-            httponly=True,
-            samesite="Lax",
-            secure=False,  # 배포 시 True로 변경 필요(https 옵션)
-        )
-        response.set_cookie(
-            "refresh_token",
-            refresh_token,
-            httponly=True,
-            samesite="Lax",
-            secure=False,  # 배포 시 True로 변경 필요(https 옵션)
-        )
+        response.set_cookie("access_token", access_token, **cookie_kwargs)
+        response.set_cookie("refresh_token", refresh_token, **cookie_kwargs)
 
         return response
 
