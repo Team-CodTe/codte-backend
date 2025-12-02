@@ -13,15 +13,20 @@ class UsernameValidationView(APIView):
 
     def post(self, request):
         serializer = UsernameValidationSerializer(
-            data=request.data, context={"request": request}
+            data=request.data,
+            context={"request": request},
         )
 
         if serializer.is_valid():
-            return Response(
-                {"message": "사용 가능한 닉네임입니다."}, status=status.HTTP_200_OK
-            )
+            return Response(status=status.HTTP_200_OK)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        first_key = next(iter(serializer.errors))
+        error_message = serializer.errors[first_key][0]
+
+        return Response(
+            {"message": error_message},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
 
 class BojUsernameValidationView(APIView):
@@ -29,13 +34,17 @@ class BojUsernameValidationView(APIView):
 
     def post(self, request):
         serializer = BojUsernameValidationSerializer(
-            data=request.data, context={"request": request}
+            data=request.data,
+            context={"request": request},
         )
 
         if serializer.is_valid():
-            return Response(
-                {"message": "사용 가능한 백준 계정입니다."},
-                status=status.HTTP_200_OK,
-            )
+            return Response(status=status.HTTP_200_OK)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        first_key = next(iter(serializer.errors))
+        error_message = serializer.errors[first_key][0]
+
+        return Response(
+            {"message": error_message},
+            status=status.HTTP_400_BAD_REQUEST,
+        )

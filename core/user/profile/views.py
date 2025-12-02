@@ -12,14 +12,21 @@ class RegisterProfileView(APIView):
         user = request.user
 
         serializer = UserSignUpSerializer(
-            user, data=request.data, context={"request": request}, partial=True
+            user,
+            data=request.data,
+            context={"request": request},
+            partial=True,
         )
 
         if serializer.is_valid():
             serializer.save()
+
             return Response(
-                {"message": "회원가입이 완료되었습니다.", "user": serializer.data},
+                {"userId": user.id},
                 status=status.HTTP_200_OK,
             )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST,
+        )

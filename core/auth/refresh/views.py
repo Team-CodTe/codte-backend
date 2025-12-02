@@ -12,7 +12,12 @@ class TokenRefreshView(APIView):
 
         if not refresh_token:
             return Response(
-                {"error": "리프레시 토큰이 존재하지 않습니다."},
+                {
+                    "error": {
+                        "code": "REFRESH_TOKEN_NOT_FOUND",
+                        "message": "리프레시 토큰이 존재하지 않습니다.",
+                    }
+                },
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
@@ -22,17 +27,19 @@ class TokenRefreshView(APIView):
             serializer.is_valid(raise_exception=True)
         except TokenError:
             return Response(
-                {"error": "유효하지 않은 리프레시 토큰입니다."},
+                {
+                    "error": {
+                        "code": "REFRESH_TOKEN_INVALID",
+                        "message": "리프레시 토큰이 유효하지 않습니다.",
+                    }
+                },
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
         new_access_token = serializer.validated_data["access"]
         new_refresh_token = serializer.validated_data.get("refresh", refresh_token)
 
-        response = Response(
-            {"message": "토큰이 재발급되었습니다."},
-            status=status.HTTP_200_OK,
-        )
+        response = Response(status=status.HTTP_200_OK)
 
         cookie_kwargs = {
             "httponly": True,

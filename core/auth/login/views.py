@@ -23,12 +23,22 @@ class SocialLoginView(APIView):
             )
         except ValueError as e:
             return Response(
-                {"error": str(e)},
+                {
+                    "error": {
+                        "code": "INVALID_ACCESS_TOKEN",
+                        "message": str(e),
+                    }
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except IntegrityError:
             return Response(
-                {"error": "로그인 중 오류가 발생했습니다."},
+                {
+                    "error": {
+                        "code": "INTERNAL_SERVER_ERROR",
+                        "message": "로그인 중 오류가 발생했습니다.",
+                    }
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -38,7 +48,6 @@ class SocialLoginView(APIView):
 
         response = Response(
             {
-                "message": "로그인에 성공했습니다.",
                 "user": {
                     "id": user.id,
                     "provider": user.provider,
