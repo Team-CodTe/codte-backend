@@ -31,5 +31,6 @@ class LogoutView(APIView):
 
         response.delete_cookie("access_token")
         response.delete_cookie("refresh_token")
+        response.delete_cookie("is_registered")
 
         return response

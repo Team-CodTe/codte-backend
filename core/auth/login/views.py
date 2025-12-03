@@ -3,8 +3,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.conf import settings
-
+from core.utils.cookie import set_secure_cookie
+from core.utils.cookie_lifetime import ACCESS_TOKEN_LIFETIME, REFRESH_TOKEN_LIFETIME
 from .services import SocialLoginService
 
 
@@ -46,6 +46,8 @@ class SocialLoginView(APIView):
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
 
+        is_registered = not is_registration_required
+
         response = Response(
             {
                 "user": {
@@ -56,18 +58,28 @@ class SocialLoginView(APIView):
                     "boj_username": user.boj_username,
                     "profile_img_url": user.profile_img_url,
                 },
-                "requires_registration": is_registration_required,
+                "is_registered": is_registered,
             },
             status=status.HTTP_200_OK,
         )
 
-        cookie_kwargs = {
-            "httponly": True,
-            "samesite": "Lax",
-            "secure": not settings.DEBUG,
-        }
-
-        response.set_cookie("access_token", access_token, **cookie_kwargs)
-        response.set_cookie("refresh_token", refresh_token, **cookie_kwargs)
+        set_secure_cookie(
+            response,
+            "access_token",
+            access_token,
+            max_age=ACCESS_TOKEN_LIFETIME,
+        )
+        set_secure_cookie(
+            response,
+            "refresh_token",
+            refresh_token,
+            max_age=REFRESH_TOKEN_LIFETIME,
+        )
+        set_secure_cookie(
+            response,
+            "is_registered",
+            str(is_registered).lower(),
+            max_age=REFRESH_TOKEN_LIFETIME,
+        )
 
         return response
