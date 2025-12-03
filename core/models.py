@@ -5,43 +5,37 @@ from django.db import models
 
 class Provider(models.TextChoices):
     """소셜 로그인 제공자"""
-    GITHUB = 'github', 'GitHub'
+
+    GITHUB = "github", "GitHub"
+    GOOGLE = "google", "Google"
 
 
 class StudyRole(models.TextChoices):
     """스터디 역할"""
-    OWNER = 'owner', 'Owner'
-    MEMBER = 'member', 'Member'
+
+    OWNER = "owner", "Owner"
+    MEMBER = "member", "Member"
 
 
 class User(AbstractUser):
     """커스텀 User 모델"""
-    email = models.EmailField(unique=True, verbose_name='이메일')
+
+    email = models.EmailField(unique=True, verbose_name="이메일")
     provider = models.CharField(
-        max_length=20,
-        choices=Provider.choices,
-        verbose_name='소셜 로그인 제공자'
+        max_length=20, choices=Provider.choices, verbose_name="소셜 로그인 제공자"
     )
     boj_username = models.CharField(
-        max_length=50,
-        blank=True,
-        null=True,
-        verbose_name='백준 사용자명'
+        max_length=50, blank=True, null=True, verbose_name="백준 사용자명"
     )
     profile_img_url = models.URLField(
-        blank=True,
-        null=True,
-        verbose_name='프로필 이미지 URL'
+        max_length=2048, blank=True, null=True, verbose_name="프로필 이미지 URL"
     )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='생성일시'
-    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일시")
 
     class Meta:
-        db_table = 'users'
-        verbose_name = '사용자'
-        verbose_name_plural = '사용자들'
+        db_table = "users"
+        verbose_name = "사용자"
+        verbose_name_plural = "사용자들"
 
     def __str__(self):
         return f"{self.email} ({self.provider})"
@@ -49,47 +43,29 @@ class User(AbstractUser):
 
 class Study(models.Model):
     """스터디 모델"""
+
     owner = models.ForeignKey(
-        'User',
+        "User",
         on_delete=models.CASCADE,
-        related_name='owned_studies',
-        verbose_name='소유자'
+        related_name="owned_studies",
+        verbose_name="소유자",
     )
-    name = models.CharField(
-        max_length=100,
-        verbose_name='스터디명'
-    )
-    description = models.TextField(
-        blank=True,
-        verbose_name='설명'
-    )
+    name = models.CharField(max_length=100, verbose_name="스터디명")
+    description = models.TextField(blank=True, verbose_name="설명")
     invite_code = models.CharField(
-        max_length=8,
-        unique=True,
-        db_index=True,
-        verbose_name='초대 코드'
+        max_length=8, unique=True, db_index=True, verbose_name="초대 코드"
     )
-    daily_problem_count = models.IntegerField(
-        default=3,
-        verbose_name='일일 문제 수'
-    )
-    target_tier = models.CharField(
-        max_length=20,
-        verbose_name='목표 티어'
-    )
+    daily_problem_count = models.IntegerField(default=3, verbose_name="일일 문제 수")
+    target_tier = models.CharField(max_length=20, verbose_name="목표 티어")
     template_content = models.TextField(
-        default="## 접근 방법\n\n## 코드\n\n## 회고",
-        verbose_name='템플릿 내용'
+        default="## 접근 방법\n\n## 코드\n\n## 회고", verbose_name="템플릿 내용"
     )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='생성일시'
-    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일시")
 
     class Meta:
-        db_table = 'studies'
-        verbose_name = '스터디'
-        verbose_name_plural = '스터디들'
+        db_table = "studies"
+        verbose_name = "스터디"
+        verbose_name_plural = "스터디들"
 
     def __str__(self):
         return f"{self.name} (by {self.owner.email})"
@@ -110,33 +86,26 @@ class Study(models.Model):
 
 class StudyMember(models.Model):
     """스터디 멤버 모델"""
+
     study = models.ForeignKey(
-        'Study',
-        on_delete=models.CASCADE,
-        related_name='members',
-        verbose_name='스터디'
+        "Study", on_delete=models.CASCADE, related_name="members", verbose_name="스터디"
     )
     user = models.ForeignKey(
-        'User',
+        "User",
         on_delete=models.CASCADE,
-        related_name='study_memberships',
-        verbose_name='사용자'
+        related_name="study_memberships",
+        verbose_name="사용자",
     )
     role = models.CharField(
-        max_length=10,
-        choices=StudyRole.choices,
-        verbose_name='역할'
+        max_length=10, choices=StudyRole.choices, verbose_name="역할"
     )
-    joined_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='가입일시'
-    )
+    joined_at = models.DateTimeField(auto_now_add=True, verbose_name="가입일시")
 
     class Meta:
-        db_table = 'study_members'
-        unique_together = [('study', 'user')]
-        verbose_name = '스터디 멤버'
-        verbose_name_plural = '스터디 멤버들'
+        db_table = "study_members"
+        unique_together = [("study", "user")]
+        verbose_name = "스터디 멤버"
+        verbose_name_plural = "스터디 멤버들"
 
     def __str__(self):
         return f"{self.user.email} - {self.study.name} ({self.role})"
@@ -144,27 +113,18 @@ class StudyMember(models.Model):
 
 class Problem(models.Model):
     """문제 모델"""
+
     boj_number = models.IntegerField(
-        unique=True,
-        db_index=True,
-        verbose_name='백준 문제 번호'
+        unique=True, db_index=True, verbose_name="백준 문제 번호"
     )
-    title = models.CharField(
-        max_length=200,
-        verbose_name='문제 제목'
-    )
-    tier = models.CharField(
-        max_length=20,
-        verbose_name='티어'
-    )
-    link = models.URLField(
-        verbose_name='문제 링크'
-    )
+    title = models.CharField(max_length=200, verbose_name="문제 제목")
+    tier = models.CharField(max_length=20, verbose_name="티어")
+    link = models.URLField(verbose_name="문제 링크")
 
     class Meta:
-        db_table = 'problems'
-        verbose_name = '문제'
-        verbose_name_plural = '문제들'
+        db_table = "problems"
+        verbose_name = "문제"
+        verbose_name_plural = "문제들"
 
     def __str__(self):
         return f"{self.boj_number}: {self.title}"
@@ -172,33 +132,28 @@ class Problem(models.Model):
 
 class DailyAssignment(models.Model):
     """일일 과제 모델"""
+
     study = models.ForeignKey(
-        'Study',
+        "Study",
         on_delete=models.CASCADE,
-        related_name='daily_assignments',
-        verbose_name='스터디'
+        related_name="daily_assignments",
+        verbose_name="스터디",
     )
     problem = models.ForeignKey(
-        'Problem',
+        "Problem",
         on_delete=models.CASCADE,
-        related_name='assignments',
-        verbose_name='문제'
+        related_name="assignments",
+        verbose_name="문제",
     )
-    assigned_date = models.DateField(
-        db_index=True,
-        verbose_name='할당일'
-    )
-    is_custom = models.BooleanField(
-        default=False,
-        verbose_name='커스텀 문제 여부'
-    )
+    assigned_date = models.DateField(db_index=True, verbose_name="할당일")
+    is_custom = models.BooleanField(default=False, verbose_name="커스텀 문제 여부")
 
     class Meta:
-        db_table = 'daily_assignments'
-        unique_together = [('study', 'problem', 'assigned_date')]
-        ordering = ['-assigned_date']
-        verbose_name = '일일 과제'
-        verbose_name_plural = '일일 과제들'
+        db_table = "daily_assignments"
+        unique_together = [("study", "problem", "assigned_date")]
+        ordering = ["-assigned_date"]
+        verbose_name = "일일 과제"
+        verbose_name_plural = "일일 과제들"
 
     def __str__(self):
         return f"{self.study.name} - {self.problem.title} ({self.assigned_date})"
@@ -206,42 +161,35 @@ class DailyAssignment(models.Model):
 
 class SolutionNote(models.Model):
     """풀이 노트 모델"""
+
     study = models.ForeignKey(
-        'Study',
+        "Study",
         on_delete=models.CASCADE,
-        related_name='solution_notes',
-        verbose_name='스터디'
+        related_name="solution_notes",
+        verbose_name="스터디",
     )
     user = models.ForeignKey(
-        'User',
+        "User",
         on_delete=models.CASCADE,
-        related_name='solution_notes',
-        verbose_name='사용자'
+        related_name="solution_notes",
+        verbose_name="사용자",
     )
     problem = models.ForeignKey(
-        'Problem',
+        "Problem",
         on_delete=models.CASCADE,
-        related_name='solution_notes',
-        verbose_name='문제'
+        related_name="solution_notes",
+        verbose_name="문제",
     )
-    content = models.TextField(
-        verbose_name='내용'
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='생성일시'
-    )
-    updated_at = models.DateTimeField(
-        auto_now=True,
-        verbose_name='수정일시'
-    )
+    content = models.TextField(verbose_name="내용")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일시")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일시")
 
     class Meta:
-        db_table = 'solution_notes'
-        unique_together = [('study', 'user', 'problem')]
-        ordering = ['-created_at']
-        verbose_name = '풀이 노트'
-        verbose_name_plural = '풀이 노트들'
+        db_table = "solution_notes"
+        unique_together = [("study", "user", "problem")]
+        ordering = ["-created_at"]
+        verbose_name = "풀이 노트"
+        verbose_name_plural = "풀이 노트들"
 
     def __str__(self):
         return f"{self.user.email} - {self.problem.title} ({self.study.name})"
