@@ -56,7 +56,10 @@ class Study(models.Model):
         max_length=8, unique=True, db_index=True, verbose_name="초대 코드"
     )
     daily_problem_count = models.IntegerField(default=3, verbose_name="일일 문제 수")
-    target_tier = models.CharField(max_length=20, verbose_name="목표 티어")
+    tier_min = models.IntegerField(verbose_name="추천 문제 최소 티어")
+    tier_max = models.IntegerField(verbose_name="추천 문제 최대 티어")
+    min_solved = models.IntegerField(blank=True, null=True, verbose_name="추천 문제 최소 푼 사람 수")
+    max_solved = models.IntegerField(blank=True, null=True, verbose_name="추천 문제 최대 푼 사람 수")
     template_content = models.TextField(
         default="## 접근 방법\n\n## 코드\n\n## 회고", verbose_name="템플릿 내용"
     )
