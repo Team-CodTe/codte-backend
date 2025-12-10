@@ -14,6 +14,7 @@ from .serializers import (
     StudyListSerializer,
 )
 from .services import StudyService, StudyMemberService
+from .permissions import IsStudyOwner, IsStudyMember
 
 
 class StudyCreateView(APIView):
@@ -39,32 +40,25 @@ class StudyCreateView(APIView):
 class StudyDetailView(APIView):
     """스터디 상세 조회 및 수정 View"""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStudyMember]
+
+    def get_permissions(self):
+        """HTTP 메서드에 따라 다른 권한 적용"""
+        if self.request.method == "GET":
+            return [IsAuthenticated(), IsStudyMember()]
+        elif self.request.method == "PATCH":
+            return [IsAuthenticated(), IsStudyOwner()]
+        return [IsAuthenticated()]
 
     def get(self, request, id):
         """스터디 상세 조회"""
         study = get_object_or_404(Study, id=id)
-        
-        # 스터디 멤버만 조회 가능
-        if not StudyMember.objects.filter(study=study, user=request.user).exists():
-            return Response(
-                {"error": {"code": "PERMISSION_DENIED", "message": "스터디 멤버만 조회할 수 있습니다."}},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        
         serializer = StudyDetailSerializer(study)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def patch(self, request, id):
         """스터디 수정"""
         study = get_object_or_404(Study, id=id)
-
-        # owner만 수정 가능
-        if study.owner != request.user:
-            return Response(
-                {"error": {"code": "PERMISSION_DENIED", "message": "스터디 소유자만 수정할 수 있습니다."}},
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         serializer = StudyUpdateSerializer(study, data=request.data, partial=True)
         if serializer.is_valid():
