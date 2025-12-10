@@ -2,10 +2,24 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from .serializers import UserSignUpSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+
 from core.utils.cookie import set_secure_cookie
 from core.utils.cookie_lifetime import ACCESS_TOKEN_LIFETIME, REFRESH_TOKEN_LIFETIME
+from .serializers import (
+    UserInfoSerializer,
+    UserSignUpSerializer,
+    UsernameValidationSerializer,
+    BojUsernameValidationSerializer,
+)
+
+
+class UserMeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserInfoSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class RegisterProfileView(APIView):
@@ -56,5 +70,47 @@ class RegisterProfileView(APIView):
 
         return Response(
             serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class UsernameValidationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = UsernameValidationSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+
+        if serializer.is_valid():
+            return Response(status=status.HTTP_200_OK)
+
+        first_key = next(iter(serializer.errors))
+        error_message = serializer.errors[first_key][0]
+
+        return Response(
+            {"message": error_message},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class BojUsernameValidationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = BojUsernameValidationSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+
+        if serializer.is_valid():
+            return Response(status=status.HTTP_200_OK)
+
+        first_key = next(iter(serializer.errors))
+        error_message = serializer.errors[first_key][0]
+
+        return Response(
+            {"message": error_message},
             status=status.HTTP_400_BAD_REQUEST,
         )

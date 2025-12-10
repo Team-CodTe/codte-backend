@@ -1,0 +1,195 @@
+from django.db import IntegrityError
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import AccessToken
+from django.contrib.auth import get_user_model
+
+from core.utils.cookie import set_secure_cookie
+from core.utils.cookie_lifetime import ACCESS_TOKEN_LIFETIME, REFRESH_TOKEN_LIFETIME
+from core.auth.services import SocialLoginService
+
+User = get_user_model()
+
+
+class SocialLoginView(APIView):
+    service_class = SocialLoginService
+
+    def post(self, request):
+        provider = request.data.get("provider")
+        access_token = request.data.get("access_token")
+        service = self.service_class()
+
+        try:
+            user_data = service.fetch_user_info(provider, access_token)
+            user, is_registration_required = service.login_or_create_user(
+                provider, user_data
+            )
+        except ValueError as e:
+            return Response(
+                {
+                    "error": {
+                        "code": "INVALID_ACCESS_TOKEN",
+                        "message": str(e),
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except IntegrityError:
+            return Response(
+                {
+                    "error": {
+                        "code": "INTERNAL_SERVER_ERROR",
+                        "message": "로그인 중 오류가 발생했습니다.",
+                    }
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+
+        is_registered = not is_registration_required
+
+        response = Response(
+            {
+                "user": {
+                    "id": user.id,
+                    "provider": user.provider,
+                    "email": user.email,
+                    "username": user.username,
+                    "boj_username": user.boj_username,
+                    "profile_img_url": user.profile_img_url,
+                },
+                "is_registered": is_registered,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+        set_secure_cookie(
+            response,
+            "access_token",
+            access_token,
+            max_age=ACCESS_TOKEN_LIFETIME,
+        )
+        set_secure_cookie(
+            response,
+            "refresh_token",
+            refresh_token,
+            max_age=REFRESH_TOKEN_LIFETIME,
+        )
+        set_secure_cookie(
+            response,
+            "is_registered",
+            str(is_registered).lower(),
+            max_age=REFRESH_TOKEN_LIFETIME,
+        )
+
+        return response
+
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        refresh_token = request.COOKIES.get("refresh_token")
+
+        if refresh_token:
+            try:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            except TokenError:
+                return Response(
+                    {
+                        "error": {
+                            "code": "INVALID_REFRESH_TOKEN",
+                            "message": "리프레시 토큰이 유효하지 않습니다.",
+                        }
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
+        response = Response(status=status.HTTP_200_OK)
+
+        response.delete_cookie("access_token")
+        response.delete_cookie("refresh_token")
+        response.delete_cookie("is_registered")
+
+        return response
+
+
+class TokenRefreshView(APIView):
+    def post(self, request):
+        refresh_token = request.COOKIES.get("refresh_token")
+
+        if not refresh_token:
+            return Response(
+                {
+                    "error": {
+                        "code": "REFRESH_TOKEN_NOT_FOUND",
+                        "message": "리프레시 토큰이 존재하지 않습니다.",
+                    }
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        serializer = TokenRefreshSerializer(data={"refresh": refresh_token})
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except TokenError:
+            return Response(
+                {
+                    "error": {
+                        "code": "REFRESH_TOKEN_INVALID",
+                        "message": "리프레시 토큰이 유효하지 않습니다.",
+                    }
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        new_access_token = serializer.validated_data["access"]
+        new_refresh_token = serializer.validated_data.get("refresh", refresh_token)
+
+        try:
+            token_object = AccessToken(new_access_token)
+            user_id = token_object["user_id"]
+            user = User.objects.get(id=user_id)
+            is_registered = bool(user.boj_username)
+        except (KeyError, User.DoesNotExist):
+            return Response(
+                {
+                    "error": {
+                        "code": "USER_NOT_FOUND",
+                        "message": "유저 정보를 찾을 수 없습니다.",
+                    }
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        response = Response(status=status.HTTP_200_OK)
+
+        set_secure_cookie(
+            response,
+            "access_token",
+            new_access_token,
+            max_age=ACCESS_TOKEN_LIFETIME,
+        )
+        set_secure_cookie(
+            response,
+            "refresh_token",
+            new_refresh_token,
+            max_age=REFRESH_TOKEN_LIFETIME,
+        )
+        set_secure_cookie(
+            response,
+            "is_registered",
+            str(is_registered).lower(),
+            max_age=REFRESH_TOKEN_LIFETIME,
+        )
+        return response
