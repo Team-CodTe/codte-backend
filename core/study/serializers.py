@@ -95,7 +95,7 @@ class StudyListSerializer(serializers.ModelSerializer):
     """가입한 스터디 목록 Serializer"""
 
     study_name = serializers.CharField(source="study.name", read_only=True)
-    member_count = serializers.SerializerMethodField()
+    member_count = serializers.IntegerField(read_only=True)
     role = serializers.CharField(read_only=True)
     joined_at = serializers.DateTimeField(read_only=True)
 
@@ -107,7 +107,3 @@ class StudyListSerializer(serializers.ModelSerializer):
             "role",
             "joined_at",
         ]
-
-    def get_member_count(self, obj):
-        """스터디의 멤버 수 반환"""
-        return obj.study.members.count()

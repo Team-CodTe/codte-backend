@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
+from django.db.models import Count
 
 from core.models import Study, StudyMember, StudyRole
 from .serializers import (
@@ -126,10 +127,10 @@ class StudyListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # 현재 사용자가 가입한 스터디 목록 조회
+        # 현재 사용자가 가입한 스터디 목록 조회 (N+1 쿼리 방지를 위해 annotate 사용)
         study_memberships = StudyMember.objects.filter(user=request.user).select_related(
             "study"
-        )
+        ).annotate(member_count=Count("study__members"))
 
         serializer = StudyListSerializer(study_memberships, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
