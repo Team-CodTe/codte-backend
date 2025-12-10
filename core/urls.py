@@ -8,4 +8,5 @@ urlpatterns = [
     path("", include("core.user.profile.urls")),
     path("", include("core.user.validate.urls")),
     path("", include("core.study.create.urls")),
+    path("", include("core.study.join.urls")),
 ]
