@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
-from django.db import IntegrityError
 from django.db.models import Count
 
 from core.models import Study, StudyMember, StudyRole
@@ -14,24 +13,21 @@ from .serializers import (
     StudyJoinSerializer,
     StudyListSerializer,
 )
+from .services import StudyService, StudyMemberService
 
 
 class StudyCreateView(APIView):
     """스터디 생성 View"""
 
     permission_classes = [IsAuthenticated]
+    service_class = StudyService
 
     def post(self, request):
         serializer = StudyCreateSerializer(data=request.data)
         if serializer.is_valid():
-            # owner는 현재 로그인한 사용자로 자동 설정
-            study = serializer.save(owner=request.user)
-
-            # 스터디 생성 시 owner를 StudyMember에 추가
-            StudyMember.objects.create(
-                study=study,
-                user=request.user,
-                role=StudyRole.OWNER,
+            service = self.service_class()
+            study = service.create_study_with_owner(
+                owner=request.user, study_data=serializer.validated_data
             )
 
             return Response(
@@ -81,6 +77,7 @@ class StudyJoinView(APIView):
     """스터디 가입 View"""
 
     permission_classes = [IsAuthenticated]
+    service_class = StudyMemberService
 
     def post(self, request):
         serializer = StudyJoinSerializer(data=request.data)
@@ -89,26 +86,12 @@ class StudyJoinView(APIView):
 
         invite_code = serializer.validated_data["invite_code"]
 
-        # 초대 코드로 스터디 찾기
-        study = get_object_or_404(Study, invite_code=invite_code)
-
-        # 이미 멤버인지 확인
-        if StudyMember.objects.filter(study=study, user=request.user).exists():
-            return Response(
-                {"error": {"code": "ALREADY_MEMBER", "message": "이미 가입된 스터디입니다."}},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # 스터디 멤버로 추가
         try:
-            StudyMember.objects.create(
-                study=study,
-                user=request.user,
-                role=StudyRole.MEMBER,
-            )
-        except IntegrityError:
+            service = self.service_class()
+            study = service.join_study(user=request.user, invite_code=invite_code)
+        except ValueError as e:
             return Response(
-                {"error": {"code": "ALREADY_MEMBER", "message": "이미 가입된 스터디입니다."}},
+                {"error": {"code": "ALREADY_MEMBER", "message": str(e)}},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
