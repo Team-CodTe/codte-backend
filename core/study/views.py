@@ -47,6 +47,14 @@ class StudyDetailView(APIView):
     def get(self, request, id):
         """스터디 상세 조회"""
         study = get_object_or_404(Study, id=id)
+        
+        # 스터디 멤버만 조회 가능
+        if not StudyMember.objects.filter(study=study, user=request.user).exists():
+            return Response(
+                {"error": {"code": "PERMISSION_DENIED", "message": "스터디 멤버만 조회할 수 있습니다."}},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        
         serializer = StudyDetailSerializer(study)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
