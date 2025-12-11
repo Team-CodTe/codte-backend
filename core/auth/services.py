@@ -1,6 +1,4 @@
 import requests
-from django.db import IntegrityError, transaction
-
 from core.models import Provider, User
 
 GOOGLE_USER_INFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"

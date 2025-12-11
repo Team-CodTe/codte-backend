@@ -7,13 +7,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
-from django.contrib.auth import get_user_model
 
+from core.models import User
 from core.utils.cookie import set_secure_cookie
 from core.utils.cookie_lifetime import ACCESS_TOKEN_LIFETIME, REFRESH_TOKEN_LIFETIME
 from core.auth.services import SocialLoginService
-
-User = get_user_model()
 
 
 class SocialLoginView(APIView):
