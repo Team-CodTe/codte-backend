@@ -85,7 +85,12 @@ class StudyJoinView(APIView):
             study = service.join_study(user=request.user, invite_code=invite_code)
         except ValueError as e:
             return Response(
-                {"error": {"code": "ALREADY_MEMBER", "message": str(e)}},
+                {
+                    "error": {
+                        "code": "ALREADY_MEMBER",
+                        "message": str(e),
+                    },
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

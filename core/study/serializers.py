@@ -94,6 +94,7 @@ class StudyJoinSerializer(serializers.Serializer):
 class StudyListSerializer(serializers.ModelSerializer):
     """가입한 스터디 목록 Serializer"""
 
+    study_id = serializers.IntegerField(source="study.id", read_only=True)
     study_name = serializers.CharField(source="study.name", read_only=True)
     member_count = serializers.IntegerField(read_only=True)
     role = serializers.CharField(read_only=True)
@@ -102,6 +103,7 @@ class StudyListSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudyMember
         fields = [
+            "study_id",
             "study_name",
             "member_count",
             "role",

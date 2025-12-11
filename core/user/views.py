@@ -90,7 +90,12 @@ class UsernameValidationView(APIView):
         error_message = serializer.errors[first_key][0]
 
         return Response(
-            {"message": error_message},
+            {
+                "error": {
+                    "code": "INVALID_USERNAME",
+                    "message": error_message,
+                },
+            },
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -111,6 +116,11 @@ class BojUsernameValidationView(APIView):
         error_message = serializer.errors[first_key][0]
 
         return Response(
-            {"message": error_message},
+            {
+                "error": {
+                    "code": "INVALID_BOJ_USERNAME",
+                    "message": error_message,
+                },
+            },
             status=status.HTTP_400_BAD_REQUEST,
         )
