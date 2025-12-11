@@ -28,7 +28,7 @@ class StudyCreateView(APIView):
         if serializer.is_valid():
             service = self.service_class()
             study = service.create_study_with_owner(
-                owner=request.user, study_data=serializer.validated_data
+                owner=request.user, validated_data=serializer.validated_data
             )
 
             return Response(
@@ -105,9 +105,11 @@ class StudyListView(APIView):
 
     def get(self, request):
         # 현재 사용자가 가입한 스터디 목록 조회 (N+1 쿼리 방지를 위해 annotate 사용)
-        study_memberships = StudyMember.objects.filter(user=request.user).select_related(
-            "study"
-        ).annotate(member_count=Count("study__members"))
+        study_memberships = (
+            StudyMember.objects.filter(user=request.user)
+            .select_related("study")
+            .annotate(member_count=Count("study__members"))
+        )
 
         serializer = StudyListSerializer(study_memberships, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
