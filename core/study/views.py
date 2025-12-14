@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
-from django.db.models import Count
+from django.db.models import Count, Subquery, OuterRef
 
 from core.models import Study, StudyMember, StudyRole
 from .serializers import (
@@ -52,8 +52,19 @@ class StudyDetailView(APIView):
 
     def get(self, request, id):
         """스터디 상세 조회"""
-        study = get_object_or_404(Study, id=id)
-        serializer = StudyDetailSerializer(study)
+        # Subquery를 사용하여 현재 유저의 role을 'my_role'이라는 필드로 추가
+        study = get_object_or_404(
+            Study.objects.annotate(
+                current_user_role=Subquery(
+                    StudyMember.objects.filter(
+                        study=OuterRef("pk"), user=request.user
+                    ).values("role")[:1]
+                )
+            ),
+            id=id,
+        )
+
+        serializer = StudyDetailSerializer(study, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def patch(self, request, id):

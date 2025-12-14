@@ -34,6 +34,8 @@ class StudyCreateSerializer(serializers.ModelSerializer):
 class StudyDetailSerializer(serializers.ModelSerializer):
     """스터디 상세 조회 Serializer"""
 
+    my_role = serializers.CharField(source="current_user_role", read_only=True)
+
     class Meta:
         model = Study
         fields = [
@@ -48,6 +50,7 @@ class StudyDetailSerializer(serializers.ModelSerializer):
             "max_solved",
             "template_content",
             "created_at",
+            "my_role",
         ]
         read_only_fields = fields
 
