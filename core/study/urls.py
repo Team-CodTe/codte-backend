@@ -3,6 +3,7 @@ from .views import (
     StudyCreateView,
     StudyDetailView,
     StudyJoinView,
+    StudyLeaveView,
     StudyListView,
 )
 
@@ -16,6 +17,11 @@ urlpatterns = [
         "studies/me/",
         StudyListView.as_view(),
         name="study_list",
+    ),
+    path(
+        "studies/<int:id>/leave/",
+        StudyLeaveView.as_view(),
+        name="study_leave",
     ),
     path(
         "studies/<int:id>/",

@@ -48,6 +48,8 @@ class StudyDetailView(APIView):
             return [IsAuthenticated(), IsStudyMember()]
         elif self.request.method == "PATCH":
             return [IsAuthenticated(), IsStudyOwner()]
+        elif self.request.method == "DELETE":
+            return [IsAuthenticated(), IsStudyOwner()]
         return [IsAuthenticated()]
 
     def get(self, request, id):
@@ -76,6 +78,12 @@ class StudyDetailView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, id):
+        """스터디 삭제(스터디 장만 가능)"""
+        study = get_object_or_404(Study, id=id)
+        study.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class StudyJoinView(APIView):
@@ -112,6 +120,29 @@ class StudyJoinView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class StudyLeaveView(APIView):
+    """스터디 멤버의 스터디 탈퇴 View"""
+
+    permission_classes = [IsAuthenticated, IsStudyMember]
+
+    def delete(self, request, id):
+        membership = get_object_or_404(StudyMember, study_id=id, user=request.user)
+
+        if membership.role == StudyRole.OWNER:
+            return Response(
+                {
+                    "error": {
+                        "code": "OWNER_CANNOT_LEAVE",
+                        "message": "스터디 오너는 탈퇴할 수 없습니다.",
+                    },
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        membership.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class StudyListView(APIView):
