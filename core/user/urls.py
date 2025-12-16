@@ -15,7 +15,7 @@ urlpatterns = [
     path(
         "user/profile/",
         UserProfileView.as_view(),
-        name="register_profile",
+        name="user_profile",
     ),
     path(
         "user/validate/username/",

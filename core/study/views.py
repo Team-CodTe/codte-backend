@@ -1,19 +1,22 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, serializers
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Subquery, OuterRef
-from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer
+from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from core.models import Study, StudyMember, StudyRole
 from .serializers import (
     StudyCreateSerializer,
+    StudyCreateErrorSerializer,
     StudyDetailSerializer,
     StudyUpdateSerializer,
     StudyJoinSerializer,
+    StudyJoinResponseSerializer,
     StudyListSerializer,
 )
+from core.common.serializers import ErrorEnvelopeSerializer
 from .services import StudyService, StudyMemberService
 from .permissions import IsStudyOwner, IsStudyMember
 
@@ -31,26 +34,7 @@ class StudyCreateView(APIView):
         request=StudyCreateSerializer,
         responses={
             201: StudyCreateSerializer,
-            400: inline_serializer(
-                name="StudyCreateError",
-                fields={
-                    "name": serializers.ListField(
-                        child=serializers.CharField(), required=False
-                    ),
-                    "description": serializers.ListField(
-                        child=serializers.CharField(), required=False
-                    ),
-                    "daily_problem_count": serializers.ListField(
-                        child=serializers.CharField(), required=False
-                    ),
-                    "tier_min": serializers.ListField(
-                        child=serializers.CharField(), required=False
-                    ),
-                    "tier_max": serializers.ListField(
-                        child=serializers.CharField(), required=False
-                    ),
-                },
-            ),
+            400: StudyCreateErrorSerializer,
         },
     )
     def post(self, request):
@@ -67,24 +51,6 @@ class StudyCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@extend_schema_view(
-    get=extend_schema(
-        summary="스터디 상세 조회",
-        description="스터디의 상세 정보를 조회합니다. 스터디 멤버만 조회 가능합니다.",
-        responses={200: StudyDetailSerializer},
-    ),
-    patch=extend_schema(
-        summary="스터디 정보 수정",
-        description="스터디 정보를 수정합니다. 스터디장만 수정 가능합니다.",
-        request=StudyUpdateSerializer,
-        responses={200: StudyUpdateSerializer},
-    ),
-    delete=extend_schema(
-        summary="스터디 삭제",
-        description="스터디를 삭제합니다. 스터디장만 삭제 가능합니다.",
-        responses={204: None},
-    ),
-)
 @extend_schema(tags=["studies"])
 class StudyDetailView(APIView):
     """스터디 상세 조회, 수정, 삭제 API"""
@@ -101,6 +67,11 @@ class StudyDetailView(APIView):
             return [IsAuthenticated(), IsStudyOwner()]
         return [IsAuthenticated()]
 
+    @extend_schema(
+        summary="스터디 상세 조회",
+        description="스터디의 상세 정보를 조회합니다. 스터디 멤버만 조회 가능합니다.",
+        responses={200: StudyDetailSerializer},
+    )
     def get(self, request, study_id):
         study = get_object_or_404(
             Study.objects.annotate(
@@ -116,6 +87,12 @@ class StudyDetailView(APIView):
         serializer = StudyDetailSerializer(study, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        summary="스터디 정보 수정",
+        description="스터디 정보를 수정합니다. 스터디장만 수정 가능합니다.",
+        request=StudyUpdateSerializer,
+        responses={200: StudyUpdateSerializer},
+    )
     def patch(self, request, study_id):
         study = get_object_or_404(Study, id=study_id)
 
@@ -125,6 +102,11 @@ class StudyDetailView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        summary="스터디 삭제",
+        description="스터디를 삭제합니다. 스터디장만 삭제 가능합니다.",
+        responses={204: None},
+    )
     def delete(self, request, study_id):
         study = get_object_or_404(Study, id=study_id)
         study.delete()
@@ -143,24 +125,8 @@ class StudyJoinView(APIView):
         description="초대 코드를 이용하여 스터디에 가입합니다.",
         request=StudyJoinSerializer,
         responses={
-            201: inline_serializer(
-                name="StudyJoinResponse",
-                fields={
-                    "id": serializers.IntegerField(),
-                },
-            ),
-            400: inline_serializer(
-                name="StudyJoinError",
-                fields={
-                    "error": inline_serializer(
-                        name="StudyJoinErrorDetail",
-                        fields={
-                            "code": serializers.CharField(),
-                            "message": serializers.CharField(),
-                        },
-                    ),
-                },
-            ),
+            201: StudyJoinResponseSerializer,
+            400: ErrorEnvelopeSerializer,
         },
     )
     def post(self, request):
@@ -176,10 +142,8 @@ class StudyJoinView(APIView):
         except ValueError as e:
             return Response(
                 {
-                    "error": {
-                        "code": "ALREADY_MEMBER",
-                        "message": str(e),
-                    },
+                    "error_code": "ALREADY_MEMBER",
+                    "message": str(e),
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -203,18 +167,7 @@ class StudyLeaveView(APIView):
         description="현재 사용자가 스터디에서 탈퇴합니다. 스터디 오너는 탈퇴할 수 없습니다.",
         responses={
             204: None,
-            400: inline_serializer(
-                name="StudyLeaveError",
-                fields={
-                    "error": inline_serializer(
-                        name="StudyLeaveErrorDetail",
-                        fields={
-                            "code": serializers.CharField(),
-                            "message": serializers.CharField(),
-                        },
-                    ),
-                },
-            ),
+            400: ErrorEnvelopeSerializer,
         },
     )
     def delete(self, request, study_id):
@@ -225,10 +178,8 @@ class StudyLeaveView(APIView):
         if membership.role == StudyRole.OWNER:
             return Response(
                 {
-                    "error": {
-                        "code": "OWNER_CANNOT_LEAVE",
-                        "message": "스터디 오너는 탈퇴할 수 없습니다.",
-                    },
+                    "error_code": "OWNER_CANNOT_LEAVE",
+                    "message": "스터디 오너는 탈퇴할 수 없습니다.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )

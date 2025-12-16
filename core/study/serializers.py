@@ -1,4 +1,6 @@
 from rest_framework import serializers
+
+from core.common.serializers import ErrorEnvelopeSerializer
 from core.models import Study, StudyMember
 
 
@@ -22,7 +24,7 @@ class StudyCreateSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "invite_code", "created_at"]
         extra_kwargs = {
             "name": {"required": True},
-            "description": {"required": True},
+            "description": {"required": False, "allow_blank": True},
             "daily_problem_count": {"required": True},
             "tier_min": {"required": True},
             "tier_max": {"required": True},
@@ -75,11 +77,11 @@ class StudyUpdateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "invite_code", "created_at"]
         extra_kwargs = {
-            "name": {"required": True},
-            "description": {"required": True},
-            "daily_problem_count": {"required": True},
-            "tier_min": {"required": True},
-            "tier_max": {"required": True},
+            "name": {"required": False},
+            "description": {"required": False, "allow_blank": True},
+            "daily_problem_count": {"required": False},
+            "tier_min": {"required": False},
+            "tier_max": {"required": False},
             "min_solved": {"required": False, "allow_null": True},
             "max_solved": {"required": False, "allow_null": True},
             "template_content": {"required": False},
@@ -112,3 +114,17 @@ class StudyListSerializer(serializers.ModelSerializer):
             "role",
             "joined_at",
         ]
+
+
+class StudyCreateErrorSerializer(serializers.Serializer):
+    name = serializers.ListField(child=serializers.CharField(), required=False)
+    description = serializers.ListField(child=serializers.CharField(), required=False)
+    daily_problem_count = serializers.ListField(
+        child=serializers.CharField(), required=False
+    )
+    tier_min = serializers.ListField(child=serializers.CharField(), required=False)
+    tier_max = serializers.ListField(child=serializers.CharField(), required=False)
+
+
+class StudyJoinResponseSerializer(serializers.Serializer):
+    id = serializers.IntegerField()

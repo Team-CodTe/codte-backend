@@ -1,18 +1,20 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, serializers
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.utils import extend_schema
 
 from core.utils.cookie import set_secure_cookie
 from core.utils.cookie_lifetime import ACCESS_TOKEN_LIFETIME, REFRESH_TOKEN_LIFETIME
 from .serializers import (
     UserInfoSerializer,
-    UseProfileSerializer,
+    UserProfileSerializer,
+    UserProfileErrorSerializer,
     UsernameValidationSerializer,
     BojUsernameValidationSerializer,
 )
+from core.common.serializers import ErrorEnvelopeSerializer
 
 
 @extend_schema(tags=["user"])
@@ -40,26 +42,16 @@ class UserProfileView(APIView):
     @extend_schema(
         summary="사용자 프로필 등록 및 수정",
         description="사용자의 username과 boj_username을 등록 및 수정합니다.",
-        request=UseProfileSerializer,
+        request=UserProfileSerializer,
         responses={
             200: UserInfoSerializer,
-            400: inline_serializer(
-                name="UserProfileError",
-                fields={
-                    "username": serializers.ListField(
-                        child=serializers.CharField(), required=False
-                    ),
-                    "boj_username": serializers.ListField(
-                        child=serializers.CharField(), required=False
-                    ),
-                },
-            ),
+            400: UserProfileErrorSerializer,
         },
     )
     def patch(self, request):
         user = request.user
 
-        serializer = UseProfileSerializer(
+        serializer = UserProfileSerializer(
             user,
             data=request.data,
             context={"request": request},
@@ -116,19 +108,8 @@ class UsernameValidationView(APIView):
         description="입력한 username이 사용 가능한지 검사합니다. 중복 여부 및 형식을 확인합니다.",
         request=UsernameValidationSerializer,
         responses={
-            200: None,
-            400: inline_serializer(
-                name="UsernameValidationError",
-                fields={
-                    "error": inline_serializer(
-                        name="UsernameValidationErrorDetail",
-                        fields={
-                            "code": serializers.CharField(),
-                            "message": serializers.CharField(),
-                        },
-                    ),
-                },
-            ),
+            204: None,
+            400: ErrorEnvelopeSerializer,
         },
     )
     def post(self, request):
@@ -138,17 +119,15 @@ class UsernameValidationView(APIView):
         )
 
         if serializer.is_valid():
-            return Response(status=status.HTTP_200_OK)
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         first_key = next(iter(serializer.errors))
         error_message = serializer.errors[first_key][0]
 
         return Response(
             {
-                "error": {
-                    "code": "INVALID_USERNAME",
-                    "message": error_message,
-                },
+                "error_code": "INVALID_USERNAME",
+                "message": error_message,
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
@@ -165,19 +144,8 @@ class BojUsernameValidationView(APIView):
         description="입력한 boj_username이 사용 가능한지 검사합니다. 실제 백준 계정 존재 여부 및 중복을 확인합니다.",
         request=BojUsernameValidationSerializer,
         responses={
-            200: None,
-            400: inline_serializer(
-                name="BojUsernameValidationError",
-                fields={
-                    "error": inline_serializer(
-                        name="BojUsernameValidationErrorDetail",
-                        fields={
-                            "code": serializers.CharField(),
-                            "message": serializers.CharField(),
-                        },
-                    ),
-                },
-            ),
+            204: None,
+            400: ErrorEnvelopeSerializer,
         },
     )
     def post(self, request):
@@ -187,17 +155,15 @@ class BojUsernameValidationView(APIView):
         )
 
         if serializer.is_valid():
-            return Response(status=status.HTTP_200_OK)
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         first_key = next(iter(serializer.errors))
         error_message = serializer.errors[first_key][0]
 
         return Response(
             {
-                "error": {
-                    "code": "INVALID_BOJ_USERNAME",
-                    "message": error_message,
-                },
+                "error_code": "INVALID_BOJ_USERNAME",
+                "message": error_message,
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
