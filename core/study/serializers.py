@@ -22,8 +22,8 @@ class StudyCreateSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "invite_code", "created_at"]
         extra_kwargs = {
             "name": {"required": True},
-            "description": {"required": False, "allow_blank": True},
-            "daily_problem_count": {"required": False},
+            "description": {"required": True},
+            "daily_problem_count": {"required": True},
             "tier_min": {"required": True},
             "tier_max": {"required": True},
             "min_solved": {"required": False, "allow_null": True},
@@ -75,11 +75,11 @@ class StudyUpdateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "invite_code", "created_at"]
         extra_kwargs = {
-            "name": {"required": False},
-            "description": {"required": False, "allow_blank": True},
-            "daily_problem_count": {"required": False},
-            "tier_min": {"required": False},
-            "tier_max": {"required": False},
+            "name": {"required": True},
+            "description": {"required": True},
+            "daily_problem_count": {"required": True},
+            "tier_min": {"required": True},
+            "tier_max": {"required": True},
             "min_solved": {"required": False, "allow_null": True},
             "max_solved": {"required": False, "allow_null": True},
             "template_content": {"required": False},

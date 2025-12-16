@@ -14,7 +14,7 @@ class IsStudyOwner(permissions.BasePermission):
             return False
 
         # URL에서 study id를 가져옴
-        study_id = view.kwargs.get("id")
+        study_id = view.kwargs.get("study_id")
         if not study_id:
             return False
 
@@ -37,7 +37,7 @@ class IsStudyMember(permissions.BasePermission):
             return False
 
         # URL에서 study id를 가져옴
-        study_id = view.kwargs.get("id")
+        study_id = view.kwargs.get("study_id")
         if not study_id:
             return False
 

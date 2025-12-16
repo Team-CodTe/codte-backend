@@ -21,7 +21,7 @@ class UserInfoSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class UserSignUpSerializer(serializers.ModelSerializer):
+class UseProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(required=True, min_length=2, max_length=20)
     boj_username = serializers.CharField(required=True)
 
