@@ -18,10 +18,7 @@ class StudyService:
             Study: 생성된 스터디 인스턴스
         """
         # 스터디 생성
-        study = Study.objects.create(
-            owner=owner,
-            **validated_data
-        )
+        study = Study.objects.create(owner=owner, **validated_data)
 
         # 스터디 생성 시 owner를 StudyMember에 추가
         StudyMember.objects.create(
@@ -45,7 +42,7 @@ class StudyMemberService:
             invite_code: 스터디 초대 코드 (str)
 
         Returns:
-            tuple: (study, created) - 스터디 인스턴스와 생성 여부
+            Study: 가입한 스터디 인스턴스
 
         Raises:
             Http404: 초대 코드에 해당하는 스터디가 없는 경우
@@ -53,10 +50,6 @@ class StudyMemberService:
         """
         # 초대 코드로 스터디 찾기
         study = get_object_or_404(Study, invite_code=invite_code)
-
-        # 이미 멤버인지 확인
-        if StudyMember.objects.filter(study=study, user=user).exists():
-            raise ValueError("이미 가입된 스터디입니다.")
 
         # 스터디 멤버로 추가
         try:

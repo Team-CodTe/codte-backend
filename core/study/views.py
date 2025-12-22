@@ -84,6 +84,8 @@ class StudyDetailView(APIView):
             id=study_id,
         )
 
+        self.check_object_permissions(request, study)
+
         serializer = StudyDetailSerializer(study, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -95,6 +97,8 @@ class StudyDetailView(APIView):
     )
     def patch(self, request, study_id):
         study = get_object_or_404(Study, id=study_id)
+
+        self.check_object_permissions(request, study)
 
         serializer = StudyUpdateSerializer(study, data=request.data, partial=True)
         if serializer.is_valid():
@@ -109,6 +113,9 @@ class StudyDetailView(APIView):
     )
     def delete(self, request, study_id):
         study = get_object_or_404(Study, id=study_id)
+
+        self.check_object_permissions(request, study)
+
         study.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
