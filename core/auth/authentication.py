@@ -1,5 +1,6 @@
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.exceptions import AuthenticationFailed
+from drf_spectacular.extensions import OpenApiAuthenticationExtension
 
 
 class CustomJWTAuthentication(JWTAuthentication):
@@ -15,3 +16,15 @@ class CustomJWTAuthentication(JWTAuthentication):
             return None
 
         return self.get_user(validated_token), validated_token
+
+
+class CustomJWTAuthenticationExtension(OpenApiAuthenticationExtension):
+    target_class = "core.auth.authentication.CustomJWTAuthentication"
+    name = "CustomJWTAuthentication"
+
+    def get_security_definition(self, auto_schema):
+        return {
+            "type": "apiKey",
+            "in": "cookie",
+            "name": "access_token",
+        }
