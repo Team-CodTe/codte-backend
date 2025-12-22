@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 from decouple import config, Csv
-from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -44,7 +43,6 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
-    "drf_spectacular",
 ]
 
 MIDDLEWARE = [
@@ -82,33 +80,11 @@ REST_FRAMEWORK = {
         "djangorestframework_camel_case.parser.CamelCaseMultiPartParser",
         "djangorestframework_camel_case.parser.CamelCaseJSONParser",
     ),
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-}
-
-# drf-spectacular 설정
-SPECTACULAR_SETTINGS = {
-    "TITLE": "CodTe API 명세",
-    "DESCRIPTION": "CodTe 백엔드 API 문서입니다.",
-    "VERSION": "1.0.0",
-    "SERVE_PUBLIC": True,
-    "SERVE_INCLUDE_SCHEMA": False,
-    "CAMELIZE_NAMES": True,
-    "POSTPROCESSING_HOOKS": [
-        "drf_spectacular.contrib.djangorestframework_camel_case.camelize_serializer_fields",
-    ],
-    "COMPONENT_SPLIT_PATCH": True,
-    "COMPONENT_SPLIT_REQUEST": True,
-    "SWAGGER_UI_SETTINGS": {
-        "dom_id": "#swagger-ui",
-        "layout": "BaseLayout",
-        "deepLinking": True,
-        "persistAuthorization": True,
-        "displayOperationId": True,
-        "filter": True,
-    },
 }
 
 # Simple JWT 설정
+from datetime import timedelta
+
 SIMPLE_JWT = {
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),

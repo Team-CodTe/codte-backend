@@ -4,39 +4,25 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Subquery, OuterRef
-from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from core.models import Study, StudyMember, StudyRole
 from .serializers import (
     StudyCreateSerializer,
-    StudyCreateErrorSerializer,
     StudyDetailSerializer,
     StudyUpdateSerializer,
     StudyJoinSerializer,
-    StudyJoinResponseSerializer,
     StudyListSerializer,
 )
-from core.common.serializers import ErrorEnvelopeSerializer
 from .services import StudyService, StudyMemberService
 from .permissions import IsStudyOwner, IsStudyMember
 
 
-@extend_schema(tags=["studies"])
 class StudyCreateView(APIView):
-    """스터디 생성 API"""
+    """스터디 생성 View"""
 
     permission_classes = [IsAuthenticated]
     service_class = StudyService
 
-    @extend_schema(
-        summary="스터디 생성",
-        description="새로운 스터디를 생성합니다. 생성자는 자동으로 스터디장이 됩니다.",
-        request=StudyCreateSerializer,
-        responses={
-            201: StudyCreateSerializer,
-            400: StudyCreateErrorSerializer,
-        },
-    )
     def post(self, request):
         serializer = StudyCreateSerializer(data=request.data)
         if serializer.is_valid():
@@ -51,9 +37,8 @@ class StudyCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@extend_schema(tags=["studies"])
 class StudyDetailView(APIView):
-    """스터디 상세 조회, 수정, 삭제 API"""
+    """스터디 상세 조회 및 수정 View"""
 
     permission_classes = [IsAuthenticated, IsStudyMember]
 
@@ -67,12 +52,9 @@ class StudyDetailView(APIView):
             return [IsAuthenticated(), IsStudyOwner()]
         return [IsAuthenticated()]
 
-    @extend_schema(
-        summary="스터디 상세 조회",
-        description="스터디의 상세 정보를 조회합니다. 스터디 멤버만 조회 가능합니다.",
-        responses={200: StudyDetailSerializer},
-    )
-    def get(self, request, study_id):
+    def get(self, request, id):
+        """스터디 상세 조회"""
+        # Subquery를 사용하여 현재 유저의 role을 'my_role'이라는 필드로 추가
         study = get_object_or_404(
             Study.objects.annotate(
                 current_user_role=Subquery(
@@ -81,24 +63,15 @@ class StudyDetailView(APIView):
                     ).values("role")[:1]
                 )
             ),
-            id=study_id,
+            id=id,
         )
-
-        self.check_object_permissions(request, study)
 
         serializer = StudyDetailSerializer(study, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @extend_schema(
-        summary="스터디 정보 수정",
-        description="스터디 정보를 수정합니다. 스터디장만 수정 가능합니다.",
-        request=StudyUpdateSerializer,
-        responses={200: StudyUpdateSerializer},
-    )
-    def patch(self, request, study_id):
-        study = get_object_or_404(Study, id=study_id)
-
-        self.check_object_permissions(request, study)
+    def patch(self, request, id):
+        """스터디 수정"""
+        study = get_object_or_404(Study, id=id)
 
         serializer = StudyUpdateSerializer(study, data=request.data, partial=True)
         if serializer.is_valid():
@@ -106,36 +79,19 @@ class StudyDetailView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @extend_schema(
-        summary="스터디 삭제",
-        description="스터디를 삭제합니다. 스터디장만 삭제 가능합니다.",
-        responses={204: None},
-    )
-    def delete(self, request, study_id):
-        study = get_object_or_404(Study, id=study_id)
-
-        self.check_object_permissions(request, study)
-
+    def delete(self, request, id):
+        """스터디 삭제(스터디 장만 가능)"""
+        study = get_object_or_404(Study, id=id)
         study.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@extend_schema(tags=["studies"])
 class StudyJoinView(APIView):
-    """스터디 가입 API"""
+    """스터디 가입 View"""
 
     permission_classes = [IsAuthenticated]
     service_class = StudyMemberService
 
-    @extend_schema(
-        summary="스터디 가입",
-        description="초대 코드를 이용하여 스터디에 가입합니다.",
-        request=StudyJoinSerializer,
-        responses={
-            201: StudyJoinResponseSerializer,
-            400: ErrorEnvelopeSerializer,
-        },
-    )
     def post(self, request):
         serializer = StudyJoinSerializer(data=request.data)
         if not serializer.is_valid():
@@ -149,44 +105,38 @@ class StudyJoinView(APIView):
         except ValueError as e:
             return Response(
                 {
-                    "error_code": "ALREADY_MEMBER",
-                    "message": str(e),
+                    "error": {
+                        "code": "ALREADY_MEMBER",
+                        "message": str(e),
+                    },
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         return Response(
             {
-                "id": study.id,
+                "message": "스터디에 가입되었습니다.",
+                "study_id": study.id,
             },
             status=status.HTTP_201_CREATED,
         )
 
 
-@extend_schema(tags=["studies"])
 class StudyLeaveView(APIView):
-    """스터디 탈퇴 API"""
+    """스터디 멤버의 스터디 탈퇴 View"""
 
     permission_classes = [IsAuthenticated, IsStudyMember]
 
-    @extend_schema(
-        summary="스터디 탈퇴",
-        description="현재 사용자가 스터디에서 탈퇴합니다. 스터디 오너는 탈퇴할 수 없습니다.",
-        responses={
-            204: None,
-            400: ErrorEnvelopeSerializer,
-        },
-    )
-    def delete(self, request, study_id):
-        membership = get_object_or_404(
-            StudyMember, study_id=study_id, user=request.user
-        )
+    def delete(self, request, id):
+        membership = get_object_or_404(StudyMember, study_id=id, user=request.user)
 
         if membership.role == StudyRole.OWNER:
             return Response(
                 {
-                    "error_code": "OWNER_CANNOT_LEAVE",
-                    "message": "스터디 오너는 탈퇴할 수 없습니다.",
+                    "error": {
+                        "code": "OWNER_CANNOT_LEAVE",
+                        "message": "스터디 오너는 탈퇴할 수 없습니다.",
+                    },
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -195,17 +145,11 @@ class StudyLeaveView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@extend_schema(tags=["studies"])
 class StudyListView(APIView):
-    """가입한 스터디 목록 조회 API"""
+    """가입한 스터디 목록 조회 View"""
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(
-        summary="내 스터디 목록 조회",
-        description="현재 로그인한 사용자가 가입한 스터디 목록을 조회합니다.",
-        responses={200: StudyListSerializer(many=True)},
-    )
     def get(self, request):
         # 현재 사용자가 가입한 스터디 목록 조회 (N+1 쿼리 방지를 위해 annotate 사용)
         study_memberships = (

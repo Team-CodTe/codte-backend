@@ -1,6 +1,4 @@
 from rest_framework import serializers
-
-from core.common.serializers import ErrorEnvelopeSerializer
 from core.models import User
 from core.user.validators import (
     validate_boj_username_for_user,
@@ -23,7 +21,7 @@ class UserInfoSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class UserProfileSerializer(serializers.ModelSerializer):
+class UserSignUpSerializer(serializers.ModelSerializer):
     username = serializers.CharField(required=True, min_length=2, max_length=20)
     boj_username = serializers.CharField(required=True)
 
@@ -54,14 +52,3 @@ class BojUsernameValidationSerializer(serializers.Serializer):
     def validate_boj_username(self, value):
         user = self.context["request"].user
         return validate_boj_username_for_user(user, value)
-
-
-class UserProfileErrorSerializer(serializers.Serializer):
-    username = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-    )
-    boj_username = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-    )

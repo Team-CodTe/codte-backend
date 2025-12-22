@@ -1,6 +1,4 @@
 from rest_framework import serializers
-
-from core.common.serializers import ErrorEnvelopeSerializer
 from core.models import Study, StudyMember
 
 
@@ -25,7 +23,7 @@ class StudyCreateSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "name": {"required": True},
             "description": {"required": False, "allow_blank": True},
-            "daily_problem_count": {"required": True},
+            "daily_problem_count": {"required": False},
             "tier_min": {"required": True},
             "tier_max": {"required": True},
             "min_solved": {"required": False, "allow_null": True},
@@ -114,17 +112,3 @@ class StudyListSerializer(serializers.ModelSerializer):
             "role",
             "joined_at",
         ]
-
-
-class StudyCreateErrorSerializer(serializers.Serializer):
-    name = serializers.ListField(child=serializers.CharField(), required=False)
-    description = serializers.ListField(child=serializers.CharField(), required=False)
-    daily_problem_count = serializers.ListField(
-        child=serializers.CharField(), required=False
-    )
-    tier_min = serializers.ListField(child=serializers.CharField(), required=False)
-    tier_max = serializers.ListField(child=serializers.CharField(), required=False)
-
-
-class StudyJoinResponseSerializer(serializers.Serializer):
-    id = serializers.IntegerField()

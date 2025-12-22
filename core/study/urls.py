@@ -19,12 +19,12 @@ urlpatterns = [
         name="study_list",
     ),
     path(
-        "studies/<int:study_id>/leave/",
+        "studies/<int:id>/leave/",
         StudyLeaveView.as_view(),
         name="study_leave",
     ),
     path(
-        "studies/<int:study_id>/",
+        "studies/<int:id>/",
         StudyDetailView.as_view(),
         name="study_detail",
     ),
