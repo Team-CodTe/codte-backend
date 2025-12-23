@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 from core.models import DailyAssignment, Problem, Study, StudyMember, StudyRole
-from core.utils.solvedac import SolvedAC
+from core.utils.solvedac import ProblemNotFoundError, SolvedAC
 
 DAILY_ASSIGNMENT_REFRESH_COOLDOWN = 1800
 
@@ -227,3 +227,62 @@ class DailyAssignmentService:
                 assigned_date=target_date,
             ).select_related("problem")
         )
+
+    @transaction.atomic
+    def add_custom_problem(self, study: Study, boj_number: int) -> DailyAssignment:
+        """
+        커스텀 문제 추가
+
+        Args:
+            study: 스터디
+            boj_number: 백준 문제 번호
+
+        Returns:
+            생성된 DailyAssignment
+
+        Raises:
+            ProblemNotFoundError: 문제를 찾을 수 없는 경우
+            AlreadyAssignedError: 이미 오늘 배정된 문제인 경우
+        """
+        target_date = date.today()
+
+        # 이미 오늘 배정된 문제인지 확인
+        existing = DailyAssignment.objects.filter(
+            study=study,
+            problem__boj_number=boj_number,
+            assigned_date=target_date,
+        ).exists()
+
+        if existing:
+            raise AlreadyAssignedError(boj_number)
+
+        # Solved.ac API로 문제 정보 조회 (없으면 ProblemNotFoundError 발생)
+        problem_data = self.solvedac_service.get_problem_by_id(boj_number)
+
+        # Problem 저장 (이미 존재하면 업데이트)
+        problem, _ = Problem.objects.update_or_create(
+            boj_number=problem_data["problemId"],
+            defaults={
+                "title": problem_data["titleKo"],
+                "tier": problem_data["level"],
+                "link": f"https://www.acmicpc.net/problem/{problem_data['problemId']}",
+            },
+        )
+
+        # DailyAssignment 생성 (is_custom=True)
+        assignment = DailyAssignment.objects.create(
+            study=study,
+            problem=problem,
+            assigned_date=target_date,
+            is_custom=True,
+        )
+
+        return assignment
+
+
+class AlreadyAssignedError(Exception):
+    """이미 배정된 문제 에러"""
+
+    def __init__(self, boj_number: int):
+        self.boj_number = boj_number
+        super().__init__(f"{boj_number}번 문제는 이미 오늘 추천 목록에 있는 문제입니다.")

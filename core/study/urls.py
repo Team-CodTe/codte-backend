@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    CustomAssignmentAddView,
     DailyAssignmentView,
     StudyCreateView,
     StudyDetailView,
@@ -38,5 +39,10 @@ urlpatterns = [
         "studies/<int:study_id>/daily-assignments/",
         DailyAssignmentView.as_view(),
         name="daily_assignments",
+    ),
+    path(
+        "studies/<int:study_id>/daily-assignments/custom/",
+        CustomAssignmentAddView.as_view(),
+        name="custom_problem_add",
     ),
 ]

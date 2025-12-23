@@ -3,7 +3,7 @@ from typing import List, Optional
 
 import requests
 
-SOLVED_AC_SEARCH_PROBLEM_API_URL = "https://solved.ac/api/v3/search/problem"
+SOLVED_AC_URL = "https://solved.ac/api/v3"
 
 
 class SolvedAC:
@@ -70,7 +70,7 @@ class SolvedAC:
             문제 목록 (각 문제는 problemId, title, tier 포함)
         """
         response = requests.get(
-            SOLVED_AC_SEARCH_PROBLEM_API_URL,
+            f"{SOLVED_AC_URL}/search/problem",
             params={
                 "query": query,
                 "sort": "random",
@@ -88,3 +88,36 @@ class SolvedAC:
             problems = random.sample(problems, count)
 
         return problems[:count]
+
+    def get_problem_by_id(self, problem_id: int) -> dict:
+        """
+        문제 ID로 문제 정보 조회
+
+        Args:
+            problem_id: 백준 문제 번호
+
+        Returns:
+            문제 정보 dict (problemId, titleKo, level 등)
+
+        Raises:
+            ProblemNotFoundError: 문제를 찾을 수 없는 경우
+        """
+        response = requests.get(
+            f"{SOLVED_AC_URL}/problem/show",
+            params={"problemId": problem_id},
+            timeout=self.timeout,
+        )
+
+        if response.status_code == 404:
+            raise ProblemNotFoundError(problem_id)
+
+        response.raise_for_status()
+        return response.json()
+
+
+class ProblemNotFoundError(Exception):
+    """문제를 찾을 수 없는 경우 발생하는 예외"""
+
+    def __init__(self, problem_id: int):
+        self.problem_id = problem_id
+        super().__init__(f"{problem_id}번 문제를 찾을 수 없습니다.")

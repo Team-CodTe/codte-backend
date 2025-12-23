@@ -170,3 +170,13 @@ class ForceRefreshErrorSerializer(serializers.Serializer):
     error_code = serializers.CharField()
     message = serializers.CharField()
     next_available_at = serializers.DateTimeField(required=False)
+
+
+class CustomAssignmentAddSerializer(serializers.Serializer):
+    """커스텀 문제 추가 Serializer"""
+
+    boj_number = serializers.IntegerField(
+        required=True,
+        help_text="백준 문제 번호",
+        min_value=1,
+    )
