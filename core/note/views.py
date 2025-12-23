@@ -4,14 +4,18 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema
 
-from .serializers import SolutionNoteCreateSerializer, SolutionNoteResponseSerializer
+from .serializers import (
+    SolutionNoteCreateSerializer,
+    SolutionNoteUpdateSerializer,
+    SolutionNoteResponseSerializer,
+)
 from core.common.serializers import ErrorEnvelopeSerializer
 from .services import SolutionNoteService
 
 
 @extend_schema(tags=["notes"])
-class SolutionNoteCreateView(APIView):
-    """풀이 노트 작성 API"""
+class SolutionNoteView(APIView):
+    """풀이 노트 작성 및 수정 API"""
 
     permission_classes = [IsAuthenticated]
     service_class = SolutionNoteService
@@ -56,3 +60,40 @@ class SolutionNoteCreateView(APIView):
         return Response(
             response_serializer.data, status=status.HTTP_201_CREATED
         )
+
+    @extend_schema(
+        summary="풀이 노트 수정",
+        description="풀이 노트의 내용을 수정합니다. 노트 작성자만 수정 가능합니다.",
+        request=SolutionNoteUpdateSerializer,
+        responses={
+            200: SolutionNoteResponseSerializer,
+            400: ErrorEnvelopeSerializer,
+            404: ErrorEnvelopeSerializer,
+        },
+    )
+    def patch(self, request):
+        serializer = SolutionNoteUpdateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        note_id = serializer.validated_data["note_id"]
+        content = serializer.validated_data["content"]
+
+        try:
+            service = self.service_class()
+            solution_note = service.update_solution_note(
+                user=request.user,
+                note_id=note_id,
+                content=content,
+            )
+        except ValueError as e:
+            return Response(
+                {
+                    "error_code": "PERMISSION_DENIED",
+                    "message": str(e),
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        response_serializer = SolutionNoteResponseSerializer(solution_note)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)

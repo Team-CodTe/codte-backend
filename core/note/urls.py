@@ -1,10 +1,10 @@
 from django.urls import path
-from .views import SolutionNoteCreateView
+from .views import SolutionNoteView
 
 urlpatterns = [
     path(
         "notes/",
-        SolutionNoteCreateView.as_view(),
-        name="solution_note_create",
+        SolutionNoteView.as_view(),
+        name="solution_note",
     ),
 ]
