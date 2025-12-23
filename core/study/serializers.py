@@ -159,8 +159,8 @@ class DailyAssignmentListResponseSerializer(serializers.Serializer):
         help_text="문제 리스트 갱신 시간", allow_null=True
     )
     can_refresh = serializers.BooleanField(help_text="강제 갱신 가능 여부")
-    refresh_cooldown_seconds = serializers.IntegerField(
-        help_text="강제 갱신까지 남은 시간(초)"
+    next_refresh_available_at = serializers.DateTimeField(
+        help_text="다음 강제 갱신 가능 시간", allow_null=True
     )
 
 
@@ -169,4 +169,4 @@ class ForceRefreshErrorSerializer(serializers.Serializer):
 
     error_code = serializers.CharField()
     message = serializers.CharField()
-    remaining_seconds = serializers.IntegerField(required=False)
+    next_available_at = serializers.DateTimeField(required=False)

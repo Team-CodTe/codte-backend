@@ -245,7 +245,7 @@ class DailyAssignmentView(APIView):
         service = DailyAssignmentService()
 
         assignments = service.assign_daily_problems(study)
-        can_refresh, remaining = service.can_force_refresh(study)
+        can_refresh, next_refresh_available_at = service.can_force_refresh(study)
 
         # 갱신 시간은 첫 번째 assignment의 created_at 사용
         refreshed_at = assignments[0].created_at if assignments else None
@@ -255,8 +255,8 @@ class DailyAssignmentView(APIView):
             {
                 "assignments": serializer.data,
                 "refreshed_at": refreshed_at,
+                "next_refresh_available_at": next_refresh_available_at,
                 "can_refresh": can_refresh,
-                "refresh_cooldown_seconds": remaining,
             },
             status=status.HTTP_200_OK,
         )
@@ -283,7 +283,7 @@ class DailyAssignmentView(APIView):
                 {
                     "error_code": "REFRESH_COOLDOWN",
                     "message": str(e),
-                    "remaining_seconds": e.remaining_seconds,
+                    "next_available_at": e.next_available_at,
                 },
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )

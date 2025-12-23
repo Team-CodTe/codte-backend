@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timedelta
 from typing import List, Optional
 
 from django.db import IntegrityError, transaction
@@ -8,7 +8,7 @@ from django.utils import timezone
 from core.models import DailyAssignment, Problem, Study, StudyMember, StudyRole
 from core.utils.solvedac import SolvedAC
 
-REFRESH_COOLDOWN_SECONDS = 300  # 5분
+DAILY_ASSIGNMENT_REFRESH_COOLDOWN = 1800
 
 
 class StudyService:
@@ -75,9 +75,9 @@ class StudyMemberService:
 class RefreshCooldownError(Exception):
     """강제 갱신 쿨다운 에러"""
 
-    def __init__(self, remaining_seconds: int):
-        self.remaining_seconds = remaining_seconds
-        super().__init__(f"{remaining_seconds}초 후에 가능합니다.")
+    def __init__(self, next_available_at: datetime):
+        self.next_available_at = next_available_at
+        super().__init__(f"{next_available_at.isoformat()} 이후에 가능합니다.")
 
 
 class DailyAssignmentService:
@@ -95,16 +95,25 @@ class DailyAssignmentService:
             .values_list("user__boj_username", flat=True)
         )
 
-    def can_force_refresh(self, study: Study) -> tuple[bool, int]:
-        """강제 갱신 가능 여부 확인"""
+    def can_force_refresh(self, study: Study) -> tuple[bool, Optional[datetime]]:
+        """강제 갱신 가능 여부 확인
+
+        Returns:
+            tuple: (갱신 가능 여부, 다음 갱신 가능 시간)
+                   - 갱신 가능하면 (True, None)
+                   - 갱신 불가능하면 (False, 다음 갱신 가능 시간)
+        """
         if study.last_problem_refreshed_at is None:
-            return True, 0
+            return True, None
 
+        next_available_at = study.last_problem_refreshed_at + timedelta(
+            seconds=DAILY_ASSIGNMENT_REFRESH_COOLDOWN
+        )
         now = timezone.now()
-        elapsed = (now - study.last_problem_refreshed_at).total_seconds()
-        remaining = max(0, int(REFRESH_COOLDOWN_SECONDS - elapsed))
 
-        return remaining == 0, remaining
+        if now >= next_available_at:
+            return True, None
+        return False, next_available_at
 
     @transaction.atomic
     def assign_daily_problems(
@@ -129,9 +138,9 @@ class DailyAssignmentService:
                 return list(existing)
 
             # 강제 갱신 쿨다운 체크
-            can_refresh, remaining = self.can_force_refresh(study)
+            can_refresh, next_available_at = self.can_force_refresh(study)
             if not can_refresh:
-                raise RefreshCooldownError(remaining)
+                raise RefreshCooldownError(next_available_at)
 
             # 기존 비커스텀 문제 삭제
             existing.delete()
