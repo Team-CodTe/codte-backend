@@ -133,3 +133,30 @@ class SolutionNoteService:
         )
 
         return solution_notes
+
+    def get_solution_note(self, user, note_id):
+        """
+        특정 풀이 노트를 조회합니다.
+
+        Args:
+            user: 조회하는 사용자 (User 인스턴스)
+            note_id: 풀이 노트 ID (int)
+
+        Returns:
+            SolutionNote: 풀이 노트 인스턴스
+
+        Raises:
+            Http404: 풀이 노트가 없는 경우
+            ValueError: 스터디 멤버가 아닌 경우
+        """
+        # 풀이 노트 조회
+        solution_note = get_object_or_404(
+            SolutionNote.objects.select_related("user", "study", "problem"),
+            id=note_id,
+        )
+
+        # 스터디 멤버인지 확인
+        if not StudyMember.objects.filter(study=solution_note.study, user=user).exists():
+            raise ValueError("스터디 멤버만 풀이 노트를 조회할 수 있습니다.")
+
+        return solution_note

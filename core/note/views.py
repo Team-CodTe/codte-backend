@@ -249,3 +249,39 @@ class SolutionNoteListView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+@extend_schema(tags=["notes"])
+class SolutionNoteDetailView(APIView):
+    """풀이 노트 상세 조회 API"""
+
+    permission_classes = [IsAuthenticated]
+    service_class = SolutionNoteService
+
+    @extend_schema(
+        summary="풀이 노트 상세 조회",
+        description="특정 풀이 노트의 전체 내용을 조회합니다. 스터디 멤버만 조회 가능합니다.",
+        responses={
+            200: SolutionNoteResponseSerializer,
+            403: ErrorEnvelopeSerializer,
+            404: ErrorEnvelopeSerializer,
+        },
+    )
+    def get(self, request, note_id):
+        try:
+            service = self.service_class()
+            solution_note = service.get_solution_note(
+                user=request.user,
+                note_id=note_id,
+            )
+        except ValueError as e:
+            return Response(
+                {
+                    "error_code": "PERMISSION_DENIED",
+                    "message": str(e),
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        response_serializer = SolutionNoteResponseSerializer(solution_note)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
