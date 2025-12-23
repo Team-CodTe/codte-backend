@@ -10,6 +10,7 @@ from .serializers import (
     SolutionNoteDeleteSerializer,
     SolutionNoteListQuerySerializer,
     SolutionNoteResponseSerializer,
+    StudyTemplateContentSerializer,
 )
 from core.common.serializers import ErrorEnvelopeSerializer
 from .services import SolutionNoteService
@@ -284,4 +285,40 @@ class SolutionNoteDetailView(APIView):
             )
 
         response_serializer = SolutionNoteResponseSerializer(solution_note)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema(tags=["notes"])
+class SolutionNoteTemplateView(APIView):
+    """스터디 템플릿 내용 조회 API"""
+
+    permission_classes = [IsAuthenticated]
+    service_class = SolutionNoteService
+
+    @extend_schema(
+        summary="스터디 템플릿 내용 조회",
+        description="해당 스터디의 템플릿 내용을 조회합니다. 스터디 멤버만 조회 가능합니다.",
+        responses={
+            200: StudyTemplateContentSerializer,
+            403: ErrorEnvelopeSerializer,
+            404: ErrorEnvelopeSerializer,
+        },
+    )
+    def get(self, request, study_id):
+        try:
+            service = self.service_class()
+            study = service.get_study_template_content(
+                user=request.user,
+                study_id=study_id,
+            )
+        except ValueError as e:
+            return Response(
+                {
+                    "error_code": "PERMISSION_DENIED",
+                    "message": str(e),
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        response_serializer = StudyTemplateContentSerializer(study)
         return Response(response_serializer.data, status=status.HTTP_200_OK)

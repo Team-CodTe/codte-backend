@@ -160,3 +160,27 @@ class SolutionNoteService:
             raise ValueError("스터디 멤버만 풀이 노트를 조회할 수 있습니다.")
 
         return solution_note
+
+    def get_study_template_content(self, user, study_id):
+        """
+        스터디의 템플릿 내용을 조회합니다.
+
+        Args:
+            user: 조회하는 사용자 (User 인스턴스)
+            study_id: 스터디 ID (int)
+
+        Returns:
+            Study: 스터디 인스턴스
+
+        Raises:
+            Http404: 스터디가 없는 경우
+            ValueError: 스터디 멤버가 아닌 경우
+        """
+        # 스터디 조회
+        study = get_object_or_404(Study, id=study_id)
+
+        # 스터디 멤버인지 확인
+        if not StudyMember.objects.filter(study=study, user=user).exists():
+            raise ValueError("스터디 멤버만 템플릿 내용을 조회할 수 있습니다.")
+
+        return study

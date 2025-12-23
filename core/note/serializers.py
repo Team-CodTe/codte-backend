@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import SolutionNote
+from core.models import SolutionNote, Study
 
 
 class SolutionNoteCreateSerializer(serializers.Serializer):
@@ -56,4 +56,13 @@ class SolutionNoteResponseSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+        read_only_fields = fields
+
+
+class StudyTemplateContentSerializer(serializers.ModelSerializer):
+    """스터디 템플릿 내용 Response Serializer"""
+
+    class Meta:
+        model = Study
+        fields = ["template_content"]
         read_only_fields = fields
