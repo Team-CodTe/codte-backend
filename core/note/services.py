@@ -75,3 +75,25 @@ class SolutionNoteService:
         solution_note.save()
 
         return solution_note
+
+    def delete_solution_note(self, user, note_id):
+        """
+        풀이 노트를 삭제합니다.
+
+        Args:
+            user: 노트를 삭제하는 사용자 (User 인스턴스)
+            note_id: 풀이 노트 ID (int)
+
+        Raises:
+            Http404: 풀이 노트가 없는 경우
+            ValueError: 노트 작성자가 아닌 경우
+        """
+        # 풀이 노트 조회
+        solution_note = get_object_or_404(SolutionNote, id=note_id)
+
+        # 작성자만 삭제 가능
+        if solution_note.user != user:
+            raise ValueError("풀이 노트 작성자만 삭제할 수 있습니다.")
+
+        # 풀이 노트 삭제
+        solution_note.delete()
