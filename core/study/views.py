@@ -8,6 +8,9 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from core.models import Study, StudyMember, StudyRole
 from .serializers import (
+    DailyAssignmentListResponseSerializer,
+    DailyAssignmentSerializer,
+    ForceRefreshErrorSerializer,
     StudyCreateSerializer,
     StudyCreateErrorSerializer,
     StudyDetailSerializer,
@@ -17,7 +20,12 @@ from .serializers import (
     StudyListSerializer,
 )
 from core.common.serializers import ErrorEnvelopeSerializer
-from .services import StudyService, StudyMemberService
+from .services import (
+    StudyService,
+    StudyMemberService,
+    DailyAssignmentService,
+    RefreshCooldownError,
+)
 from .permissions import IsStudyOwner, IsStudyMember
 
 
@@ -216,3 +224,68 @@ class StudyListView(APIView):
 
         serializer = StudyListSerializer(study_memberships, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema(tags=["daily-assignments"])
+class DailyAssignmentView(APIView):
+    """일일 문제 배정 API"""
+
+    permission_classes = [IsAuthenticated, IsStudyMember]
+
+    @extend_schema(
+        summary="일일 추천 문제 조회",
+        description="스터디의 오늘 추천 문제 목록을 조회합니다.",
+        responses={200: DailyAssignmentListResponseSerializer},
+    )
+    def get(self, request, study_id):
+        """일일 추천 문제 조회"""
+        study = get_object_or_404(Study, id=study_id)
+        self.check_object_permissions(request, study)
+
+        service = DailyAssignmentService()
+
+        assignments = service.assign_daily_problems(study)
+        can_refresh, remaining = service.can_force_refresh(study)
+
+        # 갱신 시간은 첫 번째 assignment의 created_at 사용
+        refreshed_at = assignments[0].created_at if assignments else None
+
+        serializer = DailyAssignmentSerializer(assignments, many=True)
+        return Response(
+            {
+                "assignments": serializer.data,
+                "refreshed_at": refreshed_at,
+                "can_refresh": can_refresh,
+                "refresh_cooldown_seconds": remaining,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @extend_schema(
+        summary="추천 문제 강제 갱신",
+        description="스터디의 추천 문제를 강제로 새로 갱신합니다. 5분에 1번만 가능합니다.",
+        responses={
+            204: None,
+            429: ForceRefreshErrorSerializer,
+        },
+    )
+    def post(self, request, study_id):
+        """추천 문제 강제 갱신"""
+        study = get_object_or_404(Study, id=study_id)
+        self.check_object_permissions(request, study)
+
+        service = DailyAssignmentService()
+
+        try:
+            service.assign_daily_problems(study, force_refresh=True)
+        except RefreshCooldownError as e:
+            return Response(
+                {
+                    "error_code": "REFRESH_COOLDOWN",
+                    "message": str(e),
+                    "remaining_seconds": e.remaining_seconds,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
