@@ -97,3 +97,39 @@ class SolutionNoteService:
 
         # 풀이 노트 삭제
         solution_note.delete()
+
+    def get_solution_notes(self, user, study_id, problem_id=None):
+        """
+        스터디원들의 풀이 노트 목록을 조회합니다.
+
+        Args:
+            user: 조회하는 사용자 (User 인스턴스)
+            study_id: 스터디 ID (int)
+            problem_id: 문제 ID (int, 선택)
+
+        Returns:
+            QuerySet: 풀이 노트 QuerySet
+
+        Raises:
+            Http404: 스터디 또는 문제가 없는 경우
+            ValueError: 스터디 멤버가 아닌 경우
+        """
+        # 스터디 조회
+        study = get_object_or_404(Study, id=study_id)
+
+        # 스터디 멤버인지 확인
+        if not StudyMember.objects.filter(study=study, user=user).exists():
+            raise ValueError("스터디 멤버만 풀이 노트를 조회할 수 있습니다.")
+
+        # 풀이 노트 목록 조회 (problem_id가 있으면 필터링)
+        solution_notes = SolutionNote.objects.filter(study=study)
+
+        if problem_id is not None:
+            problem = get_object_or_404(Problem, id=problem_id)
+            solution_notes = solution_notes.filter(problem=problem)
+
+        solution_notes = solution_notes.select_related("user", "study", "problem").order_by(
+            "-created_at"
+        )
+
+        return solution_notes
