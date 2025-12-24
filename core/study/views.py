@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Subquery, OuterRef
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.utils import extend_schema
 
 from core.models import Study, StudyMember, StudyRole
 from .serializers import (
@@ -17,7 +17,10 @@ from .serializers import (
     StudyListSerializer,
 )
 from core.common.serializers import ErrorEnvelopeSerializer
-from .services import StudyService, StudyMemberService
+from .services import (
+    StudyService,
+    StudyMemberService,
+)
 from .permissions import IsStudyOwner, IsStudyMember
 
 

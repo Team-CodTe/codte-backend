@@ -10,8 +10,11 @@ from rest_framework_simplejwt.tokens import AccessToken
 from drf_spectacular.utils import extend_schema, OpenApiExample
 
 from core.models import User
-from core.utils.cookie import set_secure_cookie
-from core.utils.cookie_lifetime import ACCESS_TOKEN_LIFETIME, REFRESH_TOKEN_LIFETIME
+from core.utils.cookie import (
+    set_secure_cookie,
+    ACCESS_TOKEN_LIFETIME,
+    REFRESH_TOKEN_LIFETIME,
+)
 from core.auth.services import SocialLoginService
 from .serializers import (
     SocialLoginRequestSerializer,

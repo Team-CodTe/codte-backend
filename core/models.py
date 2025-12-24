@@ -58,10 +58,17 @@ class Study(models.Model):
     daily_problem_count = models.IntegerField(default=3, verbose_name="일일 문제 수")
     tier_min = models.IntegerField(verbose_name="추천 문제 최소 티어")
     tier_max = models.IntegerField(verbose_name="추천 문제 최대 티어")
-    min_solved = models.IntegerField(blank=True, null=True, verbose_name="추천 문제 최소 푼 사람 수")
-    max_solved = models.IntegerField(blank=True, null=True, verbose_name="추천 문제 최대 푼 사람 수")
+    min_solved = models.IntegerField(
+        blank=True, null=True, verbose_name="추천 문제 최소 푼 사람 수"
+    )
+    max_solved = models.IntegerField(
+        blank=True, null=True, verbose_name="추천 문제 최대 푼 사람 수"
+    )
     template_content = models.TextField(
         default="## 접근 방법\n\n## 코드\n\n## 회고", verbose_name="템플릿 내용"
+    )
+    last_problem_refreshed_at = models.DateTimeField(
+        blank=True, null=True, verbose_name="마지막 문제 갱신 시간"
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일시")
 
@@ -121,7 +128,7 @@ class Problem(models.Model):
         unique=True, db_index=True, verbose_name="백준 문제 번호"
     )
     title = models.CharField(max_length=200, verbose_name="문제 제목")
-    tier = models.CharField(max_length=20, verbose_name="티어")
+    tier = models.IntegerField(verbose_name="티어")
     link = models.URLField(verbose_name="문제 링크")
 
     class Meta:
@@ -150,6 +157,7 @@ class DailyAssignment(models.Model):
     )
     assigned_date = models.DateField(db_index=True, verbose_name="할당일")
     is_custom = models.BooleanField(default=False, verbose_name="커스텀 문제 여부")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일시")
 
     class Meta:
         db_table = "daily_assignments"

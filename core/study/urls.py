@@ -9,6 +9,11 @@ from .views import (
 
 urlpatterns = [
     path(
+        "studies/",
+        StudyCreateView.as_view(),
+        name="study_create",
+    ),
+    path(
         "studies/join/",
         StudyJoinView.as_view(),
         name="study_join",
@@ -19,18 +24,13 @@ urlpatterns = [
         name="study_list",
     ),
     path(
-        "studies/<int:study_id>/leave/",
-        StudyLeaveView.as_view(),
-        name="study_leave",
-    ),
-    path(
         "studies/<int:study_id>/",
         StudyDetailView.as_view(),
         name="study_detail",
     ),
     path(
-        "studies/",
-        StudyCreateView.as_view(),
-        name="study_create",
+        "studies/<int:study_id>/leave/",
+        StudyLeaveView.as_view(),
+        name="study_leave",
     ),
 ]
