@@ -48,19 +48,20 @@ class DailyAssignmentView(APIView):
         assignments = service.get_daily_assignments(study)
         can_refresh, next_refresh_available_at = service.can_force_refresh(study)
 
-        # 갱신 시간은 첫 번째 assignment의 created_at 사용
-        refreshed_at = assignments[0].created_at if assignments else None
-
-        serializer = DailyAssignmentSerializer(assignments, many=True)
-        return Response(
-            {
-                "assignments": serializer.data,
-                "refreshed_at": refreshed_at,
-                "next_refresh_available_at": next_refresh_available_at,
-                "can_refresh": can_refresh,
-            },
-            status=status.HTTP_200_OK,
+        # 자동 배정된 문제 중 가장 최근 생성 시간을 갱신 시간으로 사용
+        auto_assignments = [a for a in assignments if not a.is_custom]
+        refreshed_at = (
+            max(a.created_at for a in auto_assignments) if auto_assignments else None
         )
+
+        response_data = {
+            "assignments": assignments,
+            "refreshed_at": refreshed_at,
+            "can_refresh": can_refresh,
+            "next_refresh_available_at": next_refresh_available_at,
+        }
+        serializer = DailyAssignmentListResponseSerializer(instance=response_data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         summary="오늘의 추천 문제 강제 갱신",
