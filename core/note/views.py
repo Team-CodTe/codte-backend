@@ -58,18 +58,7 @@ class SolutionNoteView(APIView):
             },
         ],
         responses={
-            200: {
-                "type": "object",
-                "properties": {
-                    "count": {"type": "integer"},
-                    "next": {"type": "string", "nullable": True},
-                    "previous": {"type": "string", "nullable": True},
-                    "results": {
-                        "type": "array",
-                        "items": SolutionNoteResponseSerializer,
-                    },
-                },
-            },
+            200: SolutionNoteResponseSerializer(many=True),
             400: ErrorEnvelopeSerializer,
             404: ErrorEnvelopeSerializer,
         },
