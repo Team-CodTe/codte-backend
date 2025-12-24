@@ -5,4 +5,5 @@ urlpatterns = [
     path("", include("core.user.urls")),
     path("", include("core.study.urls")),
     path("", include("core.assignments.urls")),
+    path("", include("core.note.urls")),
 ]
