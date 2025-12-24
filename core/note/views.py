@@ -17,8 +17,8 @@ from .services import SolutionNoteService
 
 
 @extend_schema(tags=["notes"])
-class SolutionNoteView(APIView):
-    """풀이 노트 목록 조회 및 생성 API"""
+class SolutionNoteListView(APIView):
+    """풀이 노트 목록 조회 API"""
 
     permission_classes = [IsAuthenticated]
     service_class = SolutionNoteService
@@ -26,11 +26,11 @@ class SolutionNoteView(APIView):
 
     @extend_schema(
         summary="풀이 노트 목록 조회",
-        description="특정 문제에 대해 스터디원들이 작성한 풀이 노트 목록을 조회합니다. 스터디 멤버만 조회 가능합니다.",
+        description="특정 스터디의 풀이 노트 목록을 조회합니다. 스터디 멤버만 조회 가능합니다.",
         parameters=[
             {
                 "name": "study_id",
-                "in": "query",
+                "in": "path",
                 "required": True,
                 "schema": {"type": "integer"},
                 "description": "스터디 ID",
@@ -63,13 +63,12 @@ class SolutionNoteView(APIView):
             404: ErrorEnvelopeSerializer,
         },
     )
-    def get(self, request):
+    def get(self, request, study_id):
         # Query 파라미터 검증
         serializer = SolutionNoteListQuerySerializer(data=request.query_params)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        study_id = serializer.validated_data["study_id"]
         problem_id = serializer.validated_data.get("problem_id")
 
         try:
@@ -93,6 +92,14 @@ class SolutionNoteView(APIView):
         paginated_notes = paginator.paginate_queryset(solution_notes, request, view=self)
         response_serializer = SolutionNoteResponseSerializer(paginated_notes, many=True)
         return paginator.get_paginated_response(response_serializer.data)
+
+
+@extend_schema(tags=["notes"])
+class SolutionNoteView(APIView):
+    """풀이 노트 생성 API"""
+
+    permission_classes = [IsAuthenticated]
+    service_class = SolutionNoteService
 
     @extend_schema(
         summary="풀이 노트 작성",

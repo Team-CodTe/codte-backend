@@ -19,7 +19,6 @@ class SolutionNoteUpdateSerializer(serializers.Serializer):
 class SolutionNoteListQuerySerializer(serializers.Serializer):
     """풀이 노트 목록 조회 Query Serializer"""
 
-    study_id = serializers.IntegerField(required=True, help_text="스터디 ID")
     problem_id = serializers.IntegerField(required=False, allow_null=True, help_text="문제 ID (DB 내부 ID, 선택)")
 
 
