@@ -2,7 +2,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 
 from .serializers import (
     SolutionNoteCreateSerializer,
@@ -28,34 +29,28 @@ class SolutionNoteListView(APIView):
         summary="풀이 노트 목록 조회",
         description="특정 스터디의 풀이 노트 목록을 조회합니다. 스터디 멤버만 조회 가능합니다.",
         parameters=[
-            {
-                "name": "study_id",
-                "in": "path",
-                "required": True,
-                "schema": {"type": "integer"},
-                "description": "스터디 ID",
-            },
-            {
-                "name": "problem_id",
-                "in": "query",
-                "required": False,
-                "schema": {"type": "integer"},
-                "description": "문제 ID (DB 내부 ID, 선택)",
-            },
-            {
-                "name": "page",
-                "in": "query",
-                "required": False,
-                "schema": {"type": "integer", "default": 1, "minimum": 1},
-                "description": "페이지 번호 (기본값: 1)",
-            },
-            {
-                "name": "page_size",
-                "in": "query",
-                "required": False,
-                "schema": {"type": "integer", "default": 10, "minimum": 1, "maximum": 100},
-                "description": "페이지 크기 (기본값: 10, 최대: 100)",
-            },
+            OpenApiParameter(
+                name="problem_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="문제 ID (DB 내부 ID, 선택)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="페이지 번호 (기본값: 1)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="페이지 크기 (기본값: 10, 최대: 100)",
+                required=False,
+                default=10,
+            ),
         ],
         responses={
             200: SolutionNoteResponseSerializer(many=True),
@@ -89,7 +84,9 @@ class SolutionNoteListView(APIView):
 
         # DRF 페이지네이션 적용
         paginator = self.pagination_class()
-        paginated_notes = paginator.paginate_queryset(solution_notes, request, view=self)
+        paginated_notes = paginator.paginate_queryset(
+            solution_notes, request, view=self
+        )
         response_serializer = SolutionNoteResponseSerializer(paginated_notes, many=True)
         return paginator.get_paginated_response(response_serializer.data)
 
@@ -138,9 +135,7 @@ class SolutionNoteView(APIView):
             )
 
         response_serializer = SolutionNoteResponseSerializer(solution_note)
-        return Response(
-            response_serializer.data, status=status.HTTP_201_CREATED
-        )
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(tags=["notes"])
