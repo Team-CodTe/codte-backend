@@ -21,7 +21,7 @@ from datetime import date
 
 from django.core.management.base import BaseCommand
 
-from core.study.services import DailyAssignmentService
+from core.assignments.services import DailyAssignmentService
 
 
 class Command(BaseCommand):
