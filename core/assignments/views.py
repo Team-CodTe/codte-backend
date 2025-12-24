@@ -120,7 +120,7 @@ class CustomAssignmentAddView(APIView):
         service = DailyAssignmentService()
 
         try:
-            service.add_custom_problem(study, boj_number)
+            service.add_custom_assignment(study, boj_number)
         except AlreadyAssignedError as e:
             return Response(
                 {
