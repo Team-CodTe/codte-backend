@@ -12,6 +12,7 @@ from .serializers import (
     StudyTemplateContentSerializer,
 )
 from core.common.serializers import ErrorEnvelopeSerializer
+from core.common.pagination import StandardResultsSetPagination
 from .services import SolutionNoteService
 
 
@@ -21,6 +22,7 @@ class SolutionNoteView(APIView):
 
     permission_classes = [IsAuthenticated]
     service_class = SolutionNoteService
+    pagination_class = StandardResultsSetPagination
 
     @extend_schema(
         summary="풀이 노트 목록 조회",
@@ -80,8 +82,6 @@ class SolutionNoteView(APIView):
 
         study_id = serializer.validated_data["study_id"]
         problem_id = serializer.validated_data.get("problem_id")
-        page = serializer.validated_data.get("page", 1)
-        page_size = serializer.validated_data.get("page_size", 10)
 
         try:
             service = self.service_class()
@@ -99,36 +99,11 @@ class SolutionNoteView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # 전체 개수 계산
-        total_count = solution_notes.count()
-
-        # Pagination 적용
-        start = (page - 1) * page_size
-        end = start + page_size
-        paginated_notes = solution_notes[start:end]
-
+        # DRF 페이지네이션 적용
+        paginator = self.pagination_class()
+        paginated_notes = paginator.paginate_queryset(solution_notes, request, view=self)
         response_serializer = SolutionNoteResponseSerializer(paginated_notes, many=True)
-
-        # 다음 페이지 존재 여부 확인
-        has_next = end < total_count
-        has_previous = page > 1
-
-        # URL 파라미터 구성
-        def build_url(page_num):
-            params = [f"study_id={study_id}", f"page={page_num}", f"page_size={page_size}"]
-            if problem_id is not None:
-                params.insert(1, f"problem_id={problem_id}")
-            return "?" + "&".join(params)
-
-        return Response(
-            {
-                "count": total_count,
-                "next": build_url(page + 1) if has_next else None,
-                "previous": build_url(page - 1) if has_previous else None,
-                "results": response_serializer.data,
-            },
-            status=status.HTTP_200_OK,
-        )
+        return paginator.get_paginated_response(response_serializer.data)
 
     @extend_schema(
         summary="풀이 노트 작성",

@@ -21,8 +21,6 @@ class SolutionNoteListQuerySerializer(serializers.Serializer):
 
     study_id = serializers.IntegerField(required=True, help_text="스터디 ID")
     problem_id = serializers.IntegerField(required=False, allow_null=True, help_text="문제 ID (DB 내부 ID, 선택)")
-    page = serializers.IntegerField(required=False, default=1, min_value=1, help_text="페이지 번호 (기본값: 1)")
-    page_size = serializers.IntegerField(required=False, default=10, min_value=1, max_value=100, help_text="페이지 크기 (기본값: 10, 최대: 100)")
 
 
 class SolutionNoteResponseSerializer(serializers.ModelSerializer):
