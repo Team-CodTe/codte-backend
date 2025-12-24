@@ -23,19 +23,19 @@ from .services import (
 )
 
 
-@extend_schema(tags=["daily-assignments"])
+@extend_schema(tags=["assignments"])
 class DailyAssignmentView(APIView):
-    """일일 문제 배정 API"""
+    """오늘의 추천 문제 API"""
 
     permission_classes = [IsAuthenticated, IsStudyMember]
 
     @extend_schema(
-        summary="일일 추천 문제 조회",
+        summary="오늘의 추천 문제 조회",
         description="스터디의 오늘 추천 문제 목록을 조회합니다.",
         responses={200: DailyAssignmentListResponseSerializer},
     )
     def get(self, request, study_id):
-        """일일 추천 문제 조회"""
+        """오늘의 추천 문제 조회"""
         study = get_object_or_404(Study, id=study_id)
         self.check_object_permissions(request, study)
 
@@ -63,15 +63,15 @@ class DailyAssignmentView(APIView):
         )
 
     @extend_schema(
-        summary="추천 문제 강제 갱신",
-        description="스터디의 추천 문제를 강제로 새로 갱신합니다. 5분에 1번만 가능합니다.",
+        summary="오늘의 추천 문제 강제 갱신",
+        description="스터디의 오늘 추천 문제를 강제로 새로 갱신합니다. 30분에 1번만 가능합니다.",
         responses={
             204: None,
             429: ForceRefreshErrorSerializer,
         },
     )
     def post(self, request, study_id):
-        """추천 문제 강제 갱신"""
+        """오늘의 추천 문제 강제 갱신"""
         study = get_object_or_404(Study, id=study_id)
         self.check_object_permissions(request, study)
 
@@ -92,7 +92,7 @@ class DailyAssignmentView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@extend_schema(tags=["daily-assignments"])
+@extend_schema(tags=["assignments"])
 class CustomAssignmentAddView(APIView):
     """커스텀 문제 추가 API"""
 
