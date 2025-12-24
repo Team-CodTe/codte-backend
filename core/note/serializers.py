@@ -13,14 +13,7 @@ class SolutionNoteCreateSerializer(serializers.Serializer):
 class SolutionNoteUpdateSerializer(serializers.Serializer):
     """풀이 노트 수정 Request Serializer"""
 
-    note_id = serializers.IntegerField(required=True, help_text="풀이 노트 ID")
     content = serializers.CharField(required=True, help_text="풀이 본문 (Markdown)")
-
-
-class SolutionNoteDeleteSerializer(serializers.Serializer):
-    """풀이 노트 삭제 Request Serializer"""
-
-    note_id = serializers.IntegerField(required=True, help_text="풀이 노트 ID")
 
 
 class SolutionNoteListQuerySerializer(serializers.Serializer):

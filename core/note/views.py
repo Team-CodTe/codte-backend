@@ -7,7 +7,6 @@ from drf_spectacular.utils import extend_schema
 from .serializers import (
     SolutionNoteCreateSerializer,
     SolutionNoteUpdateSerializer,
-    SolutionNoteDeleteSerializer,
     SolutionNoteListQuerySerializer,
     SolutionNoteResponseSerializer,
     StudyTemplateContentSerializer,
@@ -18,127 +17,7 @@ from .services import SolutionNoteService
 
 @extend_schema(tags=["notes"])
 class SolutionNoteView(APIView):
-    """풀이 노트 작성, 수정, 삭제 API"""
-
-    permission_classes = [IsAuthenticated]
-    service_class = SolutionNoteService
-
-    @extend_schema(
-        summary="풀이 노트 작성",
-        description="스터디의 문제에 대한 풀이 노트를 작성합니다. 스터디 멤버만 작성 가능하며, 같은 문제에 대한 노트는 하나만 작성할 수 있습니다.",
-        request=SolutionNoteCreateSerializer,
-        responses={
-            201: SolutionNoteResponseSerializer,
-            400: ErrorEnvelopeSerializer,
-            404: ErrorEnvelopeSerializer,
-        },
-    )
-    def post(self, request):
-        serializer = SolutionNoteCreateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        study_id = serializer.validated_data["study_id"]
-        problem_id = serializer.validated_data.get("problem_id")
-        content = serializer.validated_data["content"]
-
-        try:
-            service = self.service_class()
-            solution_note = service.create_solution_note(
-                user=request.user,
-                study_id=study_id,
-                problem_id=problem_id,
-                content=content,
-            )
-        except ValueError as e:
-            return Response(
-                {
-                    "error_code": "INVALID_REQUEST",
-                    "message": str(e),
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        response_serializer = SolutionNoteResponseSerializer(solution_note)
-        return Response(
-            response_serializer.data, status=status.HTTP_201_CREATED
-        )
-
-    @extend_schema(
-        summary="풀이 노트 수정",
-        description="풀이 노트의 내용을 수정합니다. 노트 작성자만 수정 가능합니다.",
-        request=SolutionNoteUpdateSerializer,
-        responses={
-            200: SolutionNoteResponseSerializer,
-            400: ErrorEnvelopeSerializer,
-            404: ErrorEnvelopeSerializer,
-        },
-    )
-    def patch(self, request):
-        serializer = SolutionNoteUpdateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        note_id = serializer.validated_data["note_id"]
-        content = serializer.validated_data["content"]
-
-        try:
-            service = self.service_class()
-            solution_note = service.update_solution_note(
-                user=request.user,
-                note_id=note_id,
-                content=content,
-            )
-        except ValueError as e:
-            return Response(
-                {
-                    "error_code": "PERMISSION_DENIED",
-                    "message": str(e),
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        response_serializer = SolutionNoteResponseSerializer(solution_note)
-        return Response(response_serializer.data, status=status.HTTP_200_OK)
-
-    @extend_schema(
-        summary="풀이 노트 삭제",
-        description="풀이 노트를 삭제합니다. 노트 작성자만 삭제 가능합니다.",
-        request=SolutionNoteDeleteSerializer,
-        responses={
-            204: None,
-            400: ErrorEnvelopeSerializer,
-            404: ErrorEnvelopeSerializer,
-        },
-    )
-    def delete(self, request):
-        serializer = SolutionNoteDeleteSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        note_id = serializer.validated_data["note_id"]
-
-        try:
-            service = self.service_class()
-            service.delete_solution_note(
-                user=request.user,
-                note_id=note_id,
-            )
-        except ValueError as e:
-            return Response(
-                {
-                    "error_code": "PERMISSION_DENIED",
-                    "message": str(e),
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-@extend_schema(tags=["notes"])
-class SolutionNoteListView(APIView):
-    """풀이 노트 목록 조회 API"""
+    """풀이 노트 목록 조회 및 생성 API"""
 
     permission_classes = [IsAuthenticated]
     service_class = SolutionNoteService
@@ -177,7 +56,7 @@ class SolutionNoteListView(APIView):
             },
         ],
         responses={
-             200: {
+            200: {
                 "type": "object",
                 "properties": {
                     "count": {"type": "integer"},
@@ -251,10 +130,51 @@ class SolutionNoteListView(APIView):
             status=status.HTTP_200_OK,
         )
 
+    @extend_schema(
+        summary="풀이 노트 작성",
+        description="스터디의 문제에 대한 풀이 노트를 작성합니다. 스터디 멤버만 작성 가능하며, 같은 문제에 대한 노트는 하나만 작성할 수 있습니다.",
+        request=SolutionNoteCreateSerializer,
+        responses={
+            201: SolutionNoteResponseSerializer,
+            400: ErrorEnvelopeSerializer,
+            404: ErrorEnvelopeSerializer,
+        },
+    )
+    def post(self, request):
+        serializer = SolutionNoteCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        study_id = serializer.validated_data["study_id"]
+        problem_id = serializer.validated_data.get("problem_id")
+        content = serializer.validated_data["content"]
+
+        try:
+            service = self.service_class()
+            solution_note = service.create_solution_note(
+                user=request.user,
+                study_id=study_id,
+                problem_id=problem_id,
+                content=content,
+            )
+        except ValueError as e:
+            return Response(
+                {
+                    "error_code": "INVALID_REQUEST",
+                    "message": str(e),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        response_serializer = SolutionNoteResponseSerializer(solution_note)
+        return Response(
+            response_serializer.data, status=status.HTTP_201_CREATED
+        )
+
 
 @extend_schema(tags=["notes"])
 class SolutionNoteDetailView(APIView):
-    """풀이 노트 상세 조회 API"""
+    """풀이 노트 상세 조회, 수정, 삭제 API"""
 
     permission_classes = [IsAuthenticated]
     service_class = SolutionNoteService
@@ -286,6 +206,70 @@ class SolutionNoteDetailView(APIView):
 
         response_serializer = SolutionNoteResponseSerializer(solution_note)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="풀이 노트 수정",
+        description="풀이 노트의 내용을 수정합니다. 노트 작성자만 수정 가능합니다.",
+        request=SolutionNoteUpdateSerializer,
+        responses={
+            200: SolutionNoteResponseSerializer,
+            400: ErrorEnvelopeSerializer,
+            403: ErrorEnvelopeSerializer,
+            404: ErrorEnvelopeSerializer,
+        },
+    )
+    def patch(self, request, note_id):
+        serializer = SolutionNoteUpdateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        content = serializer.validated_data["content"]
+
+        try:
+            service = self.service_class()
+            solution_note = service.update_solution_note(
+                user=request.user,
+                note_id=note_id,
+                content=content,
+            )
+        except ValueError as e:
+            return Response(
+                {
+                    "error_code": "PERMISSION_DENIED",
+                    "message": str(e),
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        response_serializer = SolutionNoteResponseSerializer(solution_note)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="풀이 노트 삭제",
+        description="풀이 노트를 삭제합니다. 노트 작성자만 삭제 가능합니다.",
+        responses={
+            204: None,
+            403: ErrorEnvelopeSerializer,
+            404: ErrorEnvelopeSerializer,
+        },
+    )
+    def delete(self, request, note_id):
+        try:
+            service = self.service_class()
+            service.delete_solution_note(
+                user=request.user,
+                note_id=note_id,
+            )
+        except ValueError as e:
+            return Response(
+                {
+                    "error_code": "PERMISSION_DENIED",
+                    "message": str(e),
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @extend_schema(tags=["notes"])
