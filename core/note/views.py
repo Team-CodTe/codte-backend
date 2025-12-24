@@ -18,8 +18,8 @@ from .services import SolutionNoteService
 
 
 @extend_schema(tags=["notes"])
-class SolutionNoteListView(APIView):
-    """풀이 노트 목록 조회 API"""
+class SolutionNoteView(APIView):
+    """풀이 노트 목록 조회 및 생성 API"""
 
     permission_classes = [IsAuthenticated]
     service_class = SolutionNoteService
@@ -90,14 +90,6 @@ class SolutionNoteListView(APIView):
         response_serializer = SolutionNoteResponseSerializer(paginated_notes, many=True)
         return paginator.get_paginated_response(response_serializer.data)
 
-
-@extend_schema(tags=["notes"])
-class SolutionNoteView(APIView):
-    """풀이 노트 생성 API"""
-
-    permission_classes = [IsAuthenticated]
-    service_class = SolutionNoteService
-
     @extend_schema(
         summary="풀이 노트 작성",
         description="스터디의 문제에 대한 풀이 노트를 작성합니다. 스터디 멤버만 작성 가능하며, 같은 문제에 대한 노트는 하나만 작성할 수 있습니다.",
@@ -108,12 +100,11 @@ class SolutionNoteView(APIView):
             404: ErrorEnvelopeSerializer,
         },
     )
-    def post(self, request):
+    def post(self, request, study_id):
         serializer = SolutionNoteCreateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        study_id = serializer.validated_data["study_id"]
         problem_id = serializer.validated_data.get("problem_id")
         content = serializer.validated_data["content"]
 
