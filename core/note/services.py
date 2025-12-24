@@ -7,6 +7,21 @@ from core.models import SolutionNote, Study, Problem, StudyMember
 class SolutionNoteService:
     """풀이 노트 관련 비즈니스 로직 서비스"""
 
+    def _check_study_membership(self, user, study, error_message):
+        """
+        스터디 멤버 여부를 확인하고, 멤버가 아닐 경우 ValueError를 발생시킵니다.
+
+        Args:
+            user: 확인할 사용자 (User 인스턴스)
+            study: 확인할 스터디 (Study 인스턴스)
+            error_message: 멤버가 아닐 경우 발생시킬 에러 메시지 (str)
+
+        Raises:
+            ValueError: 스터디 멤버가 아닌 경우
+        """
+        if not StudyMember.objects.filter(study=study, user=user).exists():
+            raise ValueError(error_message)
+
     def create_solution_note(self, user, study_id, problem_id, content):
         """
         풀이 노트를 생성합니다.
@@ -31,8 +46,7 @@ class SolutionNoteService:
         # TODO: DailyAssignment에 있는 문제인지 확인하는 로직 추가
 
         # 스터디 멤버인지 확인
-        if not StudyMember.objects.filter(study=study, user=user).exists():
-            raise ValueError("스터디 멤버만 풀이 노트를 작성할 수 있습니다.")
+        self._check_study_membership(user, study, "스터디 멤버만 풀이 노트를 작성할 수 있습니다.")
 
         # 풀이 노트 생성 (unique_together 제약으로 중복 방지)
         try:
@@ -118,8 +132,7 @@ class SolutionNoteService:
         study = get_object_or_404(Study, id=study_id)
 
         # 스터디 멤버인지 확인
-        if not StudyMember.objects.filter(study=study, user=user).exists():
-            raise ValueError("스터디 멤버만 풀이 노트를 조회할 수 있습니다.")
+        self._check_study_membership(user, study, "스터디 멤버만 풀이 노트를 조회할 수 있습니다.")
 
         # 풀이 노트 목록 조회 (problem_id가 있으면 필터링)
         solution_notes = SolutionNote.objects.filter(study=study)
@@ -156,8 +169,9 @@ class SolutionNoteService:
         )
 
         # 스터디 멤버인지 확인
-        if not StudyMember.objects.filter(study=solution_note.study, user=user).exists():
-            raise ValueError("스터디 멤버만 풀이 노트를 조회할 수 있습니다.")
+        self._check_study_membership(
+            user, solution_note.study, "스터디 멤버만 풀이 노트를 조회할 수 있습니다."
+        )
 
         return solution_note
 
@@ -180,7 +194,6 @@ class SolutionNoteService:
         study = get_object_or_404(Study, id=study_id)
 
         # 스터디 멤버인지 확인
-        if not StudyMember.objects.filter(study=study, user=user).exists():
-            raise ValueError("스터디 멤버만 템플릿 내용을 조회할 수 있습니다.")
+        self._check_study_membership(user, study, "스터디 멤버만 템플릿 내용을 조회할 수 있습니다.")
 
         return study
