@@ -1,7 +1,7 @@
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 
-from core.models import SolutionNote, Study, Problem, StudyMember
+from core.models import SolutionNote, Study, Problem, StudyMember, DailyAssignment
 
 
 class SolutionNoteService:
@@ -46,7 +46,15 @@ class SolutionNoteService:
         # TODO: DailyAssignment에 있는 문제인지 확인하는 로직 추가
 
         # 스터디 멤버인지 확인
-        self._check_study_membership(user, study, "스터디 멤버만 풀이 노트를 작성할 수 있습니다.")
+        self._check_study_membership(
+            user, study, "스터디 멤버만 풀이 노트를 작성할 수 있습니다."
+        )
+
+        # DailyAssignment에서 assigned_date 조회
+        assignment = DailyAssignment.objects.filter(
+            study=study, problem=problem
+        ).first()
+        assigned_date = assignment.assigned_date if assignment else None
 
         # 풀이 노트 생성 (unique_together 제약으로 중복 방지)
         try:
@@ -55,6 +63,7 @@ class SolutionNoteService:
                 user=user,
                 problem=problem,
                 content=content,
+                assigned_date=assigned_date,
             )
         except IntegrityError:
             raise ValueError("이미 해당 문제에 대한 풀이 글이 존재합니다.")
@@ -132,7 +141,9 @@ class SolutionNoteService:
         study = get_object_or_404(Study, id=study_id)
 
         # 스터디 멤버인지 확인
-        self._check_study_membership(user, study, "스터디 멤버만 풀이 글을 조회할 수 있습니다.")
+        self._check_study_membership(
+            user, study, "스터디 멤버만 풀이 글을 조회할 수 있습니다."
+        )
 
         # 풀이 노트 목록 조회 (problem_id가 있으면 필터링)
         solution_notes = SolutionNote.objects.filter(study=study)
@@ -141,9 +152,9 @@ class SolutionNoteService:
             problem = get_object_or_404(Problem, id=problem_id)
             solution_notes = solution_notes.filter(problem=problem)
 
-        solution_notes = solution_notes.select_related("user", "study", "problem").order_by(
-            "-created_at"
-        )
+        solution_notes = solution_notes.select_related(
+            "user", "study", "problem"
+        ).order_by("-created_at")
 
         return solution_notes
 
@@ -194,6 +205,8 @@ class SolutionNoteService:
         study = get_object_or_404(Study, id=study_id)
 
         # 스터디 멤버인지 확인
-        self._check_study_membership(user, study, "스터디 멤버만 템플릿 내용을 조회할 수 있습니다.")
+        self._check_study_membership(
+            user, study, "스터디 멤버만 템플릿 내용을 조회할 수 있습니다."
+        )
 
         return study

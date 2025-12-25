@@ -191,6 +191,7 @@ class SolutionNote(models.Model):
         related_name="solution_notes",
         verbose_name="문제",
     )
+    assigned_date = models.DateField(blank=True, null=True, verbose_name="문제 배정일")
     content = models.TextField(verbose_name="내용")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일시")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일시")

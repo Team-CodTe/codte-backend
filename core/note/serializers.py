@@ -1,7 +1,6 @@
 from rest_framework import serializers
-from drf_spectacular.utils import extend_schema_field
-from core.models import SolutionNote, Study, DailyAssignment
-import datetime
+
+from core.models import SolutionNote, Study
 
 
 class SolutionNoteCreateSerializer(serializers.Serializer):
@@ -47,7 +46,6 @@ class SolutionNoteResponseSerializer(serializers.ModelSerializer):
     )
     problem_boj_tier = serializers.IntegerField(source="problem.tier", read_only=True)
     problem_link = serializers.URLField(source="problem.link", read_only=True)
-    assigned_date = serializers.SerializerMethodField()
 
     class Meta:
         model = SolutionNote
@@ -65,16 +63,6 @@ class SolutionNoteResponseSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = fields
-
-    @extend_schema_field(serializers.DateField(allow_null=True))
-    def get_assigned_date(self, obj):
-        """해당 문제의 DailyAssignment에서 assigned_date 조회"""
-        assignment = DailyAssignment.objects.filter(
-            study=obj.study, problem=obj.problem
-        ).first()
-        if assignment:
-            return assignment.assigned_date
-        return None
 
 
 class StudyTemplateContentSerializer(serializers.ModelSerializer):
