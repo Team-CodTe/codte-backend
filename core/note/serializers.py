@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from core.models import SolutionNote, Study
+from drf_spectacular.utils import extend_schema_field
+from core.models import SolutionNote, Study, DailyAssignment
+import datetime
 
 
 class SolutionNoteCreateSerializer(serializers.Serializer):
@@ -25,33 +27,54 @@ class SolutionNoteListQuerySerializer(serializers.Serializer):
     )
 
 
+class SolutionNoteCreateResponseSerializer(serializers.ModelSerializer):
+    """풀이 노트 생성 Response Serializer"""
+
+    class Meta:
+        model = SolutionNote
+        fields = ["id"]
+        read_only_fields = fields
+
+
 class SolutionNoteResponseSerializer(serializers.ModelSerializer):
     """풀이 노트 Response Serializer"""
 
-    user_nickname = serializers.CharField(source="user.username", read_only=True)
-    study_id = serializers.IntegerField(source="study.id", read_only=True)
-    study_name = serializers.CharField(source="study.name", read_only=True)
+    username = serializers.CharField(source="user.username", read_only=True)
     problem_id = serializers.IntegerField(source="problem.id", read_only=True)
     problem_title = serializers.CharField(source="problem.title", read_only=True)
     problem_boj_number = serializers.IntegerField(
         source="problem.boj_number", read_only=True
     )
+    problem_boj_tier = serializers.IntegerField(source="problem.tier", read_only=True)
+    problem_link = serializers.URLField(source="problem.link", read_only=True)
+    assigned_date = serializers.SerializerMethodField()
 
     class Meta:
         model = SolutionNote
         fields = [
             "id",
-            "user_nickname",
-            "study_id",
-            "study_name",
+            "username",
             "problem_id",
             "problem_title",
             "problem_boj_number",
+            "problem_boj_tier",
+            "problem_link",
+            "assigned_date",
             "content",
             "created_at",
             "updated_at",
         ]
         read_only_fields = fields
+
+    @extend_schema_field(serializers.DateField(allow_null=True))
+    def get_assigned_date(self, obj):
+        """해당 문제의 DailyAssignment에서 assigned_date 조회"""
+        assignment = DailyAssignment.objects.filter(
+            study=obj.study, problem=obj.problem
+        ).first()
+        if assignment:
+            return assignment.assigned_date
+        return None
 
 
 class StudyTemplateContentSerializer(serializers.ModelSerializer):

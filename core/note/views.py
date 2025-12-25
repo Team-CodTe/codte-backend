@@ -9,6 +9,7 @@ from .serializers import (
     SolutionNoteCreateSerializer,
     SolutionNoteUpdateSerializer,
     SolutionNoteListQuerySerializer,
+    SolutionNoteCreateResponseSerializer,
     SolutionNoteResponseSerializer,
     StudyTemplateContentSerializer,
 )
@@ -30,7 +31,7 @@ class SolutionNoteView(APIView):
         description="특정 스터디의 풀이 노트 목록을 조회합니다. 스터디 멤버만 조회 가능합니다.",
         parameters=[
             OpenApiParameter(
-                name="problem_id",
+                name="problemId",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
                 description="문제 ID (DB 내부 ID, 선택)",
@@ -44,7 +45,7 @@ class SolutionNoteView(APIView):
                 required=False,
             ),
             OpenApiParameter(
-                name="page_size",
+                name="pageSize",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
                 description="페이지 크기 (기본값: 10, 최대: 100)",
@@ -95,7 +96,7 @@ class SolutionNoteView(APIView):
         description="스터디의 문제에 대한 풀이 노트를 작성합니다. 스터디 멤버만 작성 가능하며, 같은 문제에 대한 노트는 하나만 작성할 수 있습니다.",
         request=SolutionNoteCreateSerializer,
         responses={
-            201: SolutionNoteResponseSerializer,
+            201: SolutionNoteCreateResponseSerializer,
             400: ErrorEnvelopeSerializer,
             404: ErrorEnvelopeSerializer,
         },
@@ -125,7 +126,7 @@ class SolutionNoteView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        response_serializer = SolutionNoteResponseSerializer(solution_note)
+        response_serializer = SolutionNoteCreateResponseSerializer(solution_note)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
 

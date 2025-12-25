@@ -57,7 +57,7 @@ class SolutionNoteService:
                 content=content,
             )
         except IntegrityError:
-            raise ValueError("이미 해당 문제에 대한 풀이 노트가 존재합니다.")
+            raise ValueError("이미 해당 문제에 대한 풀이 글이 존재합니다.")
 
         return solution_note
 
@@ -82,7 +82,7 @@ class SolutionNoteService:
 
         # 작성자만 수정 가능
         if solution_note.user != user:
-            raise ValueError("풀이 노트 작성자만 수정할 수 있습니다.")
+            raise ValueError("풀이 글 작성자만 수정할 수 있습니다.")
 
         # 풀이 노트 수정
         solution_note.content = content
@@ -107,7 +107,7 @@ class SolutionNoteService:
 
         # 작성자만 삭제 가능
         if solution_note.user != user:
-            raise ValueError("풀이 노트 작성자만 삭제할 수 있습니다.")
+            raise ValueError("풀이 글 작성자만 삭제할 수 있습니다.")
 
         # 풀이 노트 삭제
         solution_note.delete()
@@ -132,7 +132,7 @@ class SolutionNoteService:
         study = get_object_or_404(Study, id=study_id)
 
         # 스터디 멤버인지 확인
-        self._check_study_membership(user, study, "스터디 멤버만 풀이 노트를 조회할 수 있습니다.")
+        self._check_study_membership(user, study, "스터디 멤버만 풀이 글을 조회할 수 있습니다.")
 
         # 풀이 노트 목록 조회 (problem_id가 있으면 필터링)
         solution_notes = SolutionNote.objects.filter(study=study)
@@ -170,7 +170,7 @@ class SolutionNoteService:
 
         # 스터디 멤버인지 확인
         self._check_study_membership(
-            user, solution_note.study, "스터디 멤버만 풀이 노트를 조회할 수 있습니다."
+            user, solution_note.study, "스터디 멤버만 풀이 글을 조회할 수 있습니다."
         )
 
         return solution_note
