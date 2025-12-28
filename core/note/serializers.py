@@ -46,6 +46,7 @@ class SolutionNoteResponseSerializer(serializers.ModelSerializer):
     )
     problem_boj_tier = serializers.IntegerField(source="problem.tier", read_only=True)
     problem_link = serializers.URLField(source="problem.link", read_only=True)
+    is_updated = serializers.SerializerMethodField(help_text="수정 여부")
 
     class Meta:
         model = SolutionNote
@@ -61,8 +62,13 @@ class SolutionNoteResponseSerializer(serializers.ModelSerializer):
             "content",
             "created_at",
             "updated_at",
+            "is_updated",
         ]
         read_only_fields = fields
+
+    def get_is_updated(self, obj: SolutionNote) -> bool:
+        """created_at과 updated_at을 비교하여 수정 여부 반환"""
+        return obj.created_at != obj.updated_at
 
 
 class StudyTemplateContentSerializer(serializers.ModelSerializer):

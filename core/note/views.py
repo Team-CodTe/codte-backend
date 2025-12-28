@@ -170,7 +170,7 @@ class SolutionNoteDetailView(APIView):
         description="풀이 노트의 내용을 수정합니다. 노트 작성자만 수정 가능합니다.",
         request=SolutionNoteUpdateSerializer,
         responses={
-            200: SolutionNoteResponseSerializer,
+            204: None,
             400: ErrorEnvelopeSerializer,
             403: ErrorEnvelopeSerializer,
             404: ErrorEnvelopeSerializer,
@@ -185,7 +185,7 @@ class SolutionNoteDetailView(APIView):
 
         try:
             service = self.service_class()
-            solution_note = service.update_solution_note(
+            service.update_solution_note(
                 user=request.user,
                 note_id=note_id,
                 content=content,
@@ -199,8 +199,7 @@ class SolutionNoteDetailView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        response_serializer = SolutionNoteResponseSerializer(solution_note)
-        return Response(response_serializer.data, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(
         summary="풀이 노트 삭제",
