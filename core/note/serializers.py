@@ -24,6 +24,20 @@ class SolutionNoteListQuerySerializer(serializers.Serializer):
     problem_id = serializers.IntegerField(
         required=False, allow_null=True, help_text="문제 ID (DB 내부 ID, 선택)"
     )
+    assigned_date = serializers.DateField(
+        required=False, allow_null=True, help_text="문제 추천 날짜 (YYYY-MM-DD)"
+    )
+    updated_date = serializers.DateField(
+        required=False,
+        allow_null=True,
+        help_text="작성일 (YYYY-MM-DD, updated_at 기준)",
+    )
+    query = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="통합 검색 (제목, 문제 번호, 작성자)",
+    )
 
 
 class SolutionNoteCreateResponseSerializer(serializers.ModelSerializer):
@@ -67,8 +81,12 @@ class SolutionNoteResponseSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_is_updated(self, obj: SolutionNote) -> bool:
-        """created_at과 updated_at을 비교하여 수정 여부 반환"""
-        return obj.created_at != obj.updated_at
+        """created_at과 updated_at을 비교하여 수정 여부 반환 (1초 이상 차이시 수정으로 판단)"""
+        from datetime import timedelta
+
+        if obj.created_at is None or obj.updated_at is None:
+            return False
+        return (obj.updated_at - obj.created_at) > timedelta(seconds=1)
 
 
 class StudyTemplateContentSerializer(serializers.ModelSerializer):

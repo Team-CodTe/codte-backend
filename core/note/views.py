@@ -38,6 +38,27 @@ class SolutionNoteView(APIView):
                 required=False,
             ),
             OpenApiParameter(
+                name="assignedDate",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description="문제 추천 날짜 (YYYY-MM-DD)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="updatedDate",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description="작성일 (YYYY-MM-DD, updated_at 기준)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="query",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="통합 검색 (제목, 문제 번호, 작성자)",
+                required=False,
+            ),
+            OpenApiParameter(
                 name="page",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
@@ -45,12 +66,12 @@ class SolutionNoteView(APIView):
                 required=False,
             ),
             OpenApiParameter(
-                name="pageSize",
+                name="page_size",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
-                description="페이지 크기 (기본값: 10, 최대: 100)",
+                description="페이지 크기 (기본값: 20, 최대: 100)",
                 required=False,
-                default=10,
+                default=30,
             ),
         ],
         responses={
@@ -65,7 +86,11 @@ class SolutionNoteView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        # 검색 파라미터 추출
         problem_id = serializer.validated_data.get("problem_id")
+        assigned_date = serializer.validated_data.get("assigned_date")
+        updated_date = serializer.validated_data.get("updated_date")
+        query = serializer.validated_data.get("query")
 
         try:
             service = self.service_class()
@@ -73,6 +98,9 @@ class SolutionNoteView(APIView):
                 user=request.user,
                 study_id=study_id,
                 problem_id=problem_id,
+                assigned_date=assigned_date,
+                updated_date=updated_date,
+                query=query,
             )
         except ValueError as e:
             return Response(

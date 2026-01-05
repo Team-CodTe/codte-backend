@@ -1,5 +1,6 @@
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
 
 from core.models import SolutionNote, Study, Problem, StudyMember, DailyAssignment
 
@@ -66,7 +67,7 @@ class SolutionNoteService:
                 assigned_date=assigned_date,
             )
         except IntegrityError:
-            raise ValueError("이미 해당 문제에 대한 풀이 글이 존재합니다.")
+            raise ValueError("이미 풀이 글을 작성한 문제입니다.")
 
         return solution_note
 
@@ -121,7 +122,15 @@ class SolutionNoteService:
         # 풀이 노트 삭제
         solution_note.delete()
 
-    def get_solution_notes(self, user, study_id, problem_id=None):
+    def get_solution_notes(
+        self,
+        user,
+        study_id,
+        problem_id=None,
+        assigned_date=None,
+        updated_date=None,
+        query=None,
+    ):
         """
         스터디원들의 풀이 노트 목록을 조회합니다.
 
@@ -129,6 +138,9 @@ class SolutionNoteService:
             user: 조회하는 사용자 (User 인스턴스)
             study_id: 스터디 ID (int)
             problem_id: 문제 ID (int, 선택)
+            assigned_date: 문제 추천 날짜 (date, 선택)
+            updated_date: 작성일 (date, 선택 - updated_at 기준)
+            query: 통합 검색 (제목, 문제 번호, 작성자)
 
         Returns:
             QuerySet: 풀이 노트 QuerySet
@@ -151,6 +163,21 @@ class SolutionNoteService:
         if problem_id is not None:
             problem = get_object_or_404(Problem, id=problem_id)
             solution_notes = solution_notes.filter(problem=problem)
+
+        # 검색 필터 적용
+        if assigned_date is not None:
+            solution_notes = solution_notes.filter(assigned_date=assigned_date)
+
+        if updated_date is not None:
+            solution_notes = solution_notes.filter(updated_at__date=updated_date)
+
+        if query:
+            q_filter = Q(problem__title__icontains=query) | Q(
+                user__username__icontains=query
+            )
+            if query.isdigit():
+                q_filter |= Q(problem__boj_number=int(query))
+            solution_notes = solution_notes.filter(q_filter)
 
         solution_notes = solution_notes.select_related(
             "user", "study", "problem"
