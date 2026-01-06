@@ -89,38 +89,38 @@ class SocialLoginView(APIView):
 
         is_registered = not is_registration_required
 
-        response = Response(
-            {
-                "user": {
-                    "id": user.id,
-                    "provider": user.provider,
-                    "email": user.email,
-                    "username": user.username,
-                    "boj_username": user.boj_username,
-                    "profile_img_url": user.profile_img_url,
-                },
-                "is_registered": is_registered,
+        response_data = {
+            "user": {
+                "id": user.id,
+                "provider": user.provider,
+                "email": user.email,
+                "username": user.username,
+                "boj_username": user.boj_username,
+                "profile_img_url": user.profile_img_url,
             },
-            status=status.HTTP_200_OK,
-        )
+            "is_registered": is_registered,
+        }
+        serializer = SocialLoginResponseSerializer(data=response_data)
+        serializer.is_valid(raise_exception=True)
+        response = Response(serializer.validated_data, status=status.HTTP_200_OK)
 
         set_secure_cookie(
             response,
             "access_token",
             access_token,
-            max_age=ACCESS_TOKEN_LIFETIME,
+            max_age=int(ACCESS_TOKEN_LIFETIME.total_seconds()),
         )
         set_secure_cookie(
             response,
             "refresh_token",
             refresh_token,
-            max_age=REFRESH_TOKEN_LIFETIME,
+            max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
         )
         set_secure_cookie(
             response,
             "is_registered",
             str(is_registered).lower(),
-            max_age=REFRESH_TOKEN_LIFETIME,
+            max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
         )
 
         return response
@@ -228,19 +228,19 @@ class TokenRefreshView(APIView):
             response,
             "access_token",
             new_access_token,
-            max_age=ACCESS_TOKEN_LIFETIME,
+            max_age=int(ACCESS_TOKEN_LIFETIME.total_seconds()),
         )
         set_secure_cookie(
             response,
             "refresh_token",
             new_refresh_token,
-            max_age=REFRESH_TOKEN_LIFETIME,
+            max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
         )
         set_secure_cookie(
             response,
             "is_registered",
             str(is_registered).lower(),
-            max_age=REFRESH_TOKEN_LIFETIME,
+            max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
         )
         return response
 
@@ -334,47 +334,50 @@ class TestLoginView(APIView):
             )
 
         # 만료되지 않는 토큰 생성 (100년 후 만료)
+        test_token_lifetime = timedelta(days=36500)
+
         refresh = RefreshToken.for_user(user)
         access_token_obj = refresh.access_token
-        access_token_obj.set_exp(from_time=None, lifetime=timedelta(days=36500))
+        access_token_obj.set_exp(from_time=None, lifetime=test_token_lifetime)
 
         access_token = str(access_token_obj)
         refresh_token = str(refresh)
 
         is_registered = bool(user.boj_username)
 
-        response = Response(
-            {
-                "user": {
-                    "id": user.id,
-                    "provider": user.provider,
-                    "email": user.email,
-                    "username": user.username,
-                    "boj_username": user.boj_username,
-                    "profile_img_url": user.profile_img_url,
-                },
-                "is_registered": is_registered,
+        response_data = {
+            "user": {
+                "id": user.id,
+                "provider": user.provider,
+                "email": user.email,
+                "username": user.username,
+                "boj_username": user.boj_username,
+                "profile_img_url": user.profile_img_url,
             },
-            status=status.HTTP_200_OK,
-        )
+            "is_registered": is_registered,
+        }
+        serializer = SocialLoginResponseSerializer(data=response_data)
+        serializer.is_valid(raise_exception=True)
+        response = Response(serializer.validated_data, status=status.HTTP_200_OK)
 
+        # 테스트용 access token 쿠키는 토큰 만료 시간과 동일하게 설정
         set_secure_cookie(
             response,
             "access_token",
             access_token,
-            max_age=ACCESS_TOKEN_LIFETIME,
+            max_age=int(test_token_lifetime.total_seconds()),
         )
         set_secure_cookie(
             response,
             "refresh_token",
             refresh_token,
-            max_age=REFRESH_TOKEN_LIFETIME,
+            max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
         )
         set_secure_cookie(
             response,
             "is_registered",
             str(is_registered).lower(),
-            max_age=REFRESH_TOKEN_LIFETIME,
+            max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
         )
 
         return response
