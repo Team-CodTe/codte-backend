@@ -71,7 +71,7 @@ class SolutionNoteView(APIView):
                 location=OpenApiParameter.QUERY,
                 description="페이지 크기 (기본값: 20, 최대: 100)",
                 required=False,
-                default=30,
+                default=20,
             ),
         ],
         responses={

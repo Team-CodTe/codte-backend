@@ -176,7 +176,11 @@ class SolutionNoteService:
                 user__username__icontains=query
             )
             if query.isdigit():
-                q_filter |= Q(problem__boj_number=int(query))
+                try:
+                    q_filter |= Q(problem__boj_number=int(query))
+                except ValueError:
+                    # 숫자가 너무 커서 변환할 수 없는 경우 등 예외 처리
+                    pass
             solution_notes = solution_notes.filter(q_filter)
 
         solution_notes = solution_notes.select_related(

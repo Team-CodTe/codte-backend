@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from datetime import timedelta
 
 from core.models import SolutionNote, Study
 
@@ -81,9 +82,6 @@ class SolutionNoteResponseSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_is_updated(self, obj: SolutionNote) -> bool:
-        """created_at과 updated_at을 비교하여 수정 여부 반환 (1초 이상 차이시 수정으로 판단)"""
-        from datetime import timedelta
-
         if obj.created_at is None or obj.updated_at is None:
             return False
         return (obj.updated_at - obj.created_at) > timedelta(seconds=1)
