@@ -6,6 +6,7 @@ from core.models import DailyAssignment
 class DailyAssignmentSerializer(serializers.ModelSerializer):
     """오늘의 추천 문제 Serializer"""
 
+    problem_id = serializers.IntegerField(source="problem.id", read_only=True)
     boj_number = serializers.IntegerField(source="problem.boj_number", read_only=True)
     title = serializers.CharField(source="problem.title", read_only=True)
     tier = serializers.IntegerField(source="problem.tier", read_only=True)
@@ -15,6 +16,7 @@ class DailyAssignmentSerializer(serializers.ModelSerializer):
         model = DailyAssignment
         fields = [
             "id",
+            "problem_id",
             "boj_number",
             "title",
             "tier",

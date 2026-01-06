@@ -28,6 +28,7 @@ class DailyAssignmentView(APIView):
     """오늘의 추천 문제 API"""
 
     permission_classes = [IsAuthenticated, IsStudyMember]
+    serializer_class = DailyAssignmentListResponseSerializer
 
     @extend_schema(
         summary="오늘의 추천 문제 조회",

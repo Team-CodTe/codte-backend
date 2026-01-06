@@ -65,7 +65,8 @@ class Study(models.Model):
         blank=True, null=True, verbose_name="추천 문제 최대 푼 사람 수"
     )
     template_content = models.TextField(
-        default="## 접근 방법\n\n## 코드\n\n## 회고", verbose_name="템플릿 내용"
+        default="## 접근 방법\n - \n - \n\n## 코드\n```\n여기에 코드를 입력하세요\n```\n\n## 회고\n - \n - \n",
+        verbose_name="템플릿 내용",
     )
     last_problem_refreshed_at = models.DateTimeField(
         blank=True, null=True, verbose_name="마지막 문제 갱신 시간"
@@ -191,6 +192,7 @@ class SolutionNote(models.Model):
         related_name="solution_notes",
         verbose_name="문제",
     )
+    assigned_date = models.DateField(blank=True, null=True, verbose_name="문제 배정일")
     content = models.TextField(verbose_name="내용")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일시")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일시")

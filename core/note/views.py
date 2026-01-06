@@ -9,6 +9,7 @@ from .serializers import (
     SolutionNoteCreateSerializer,
     SolutionNoteUpdateSerializer,
     SolutionNoteListQuerySerializer,
+    SolutionNoteCreateResponseSerializer,
     SolutionNoteResponseSerializer,
     StudyTemplateContentSerializer,
 )
@@ -30,10 +31,31 @@ class SolutionNoteView(APIView):
         description="특정 스터디의 풀이 노트 목록을 조회합니다. 스터디 멤버만 조회 가능합니다.",
         parameters=[
             OpenApiParameter(
-                name="problem_id",
+                name="problemId",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
                 description="문제 ID (DB 내부 ID, 선택)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="assignedDate",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description="문제 추천 날짜 (YYYY-MM-DD)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="updatedDate",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description="작성일 (YYYY-MM-DD, updated_at 기준)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="query",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="통합 검색 (제목, 문제 번호, 작성자)",
                 required=False,
             ),
             OpenApiParameter(
@@ -47,9 +69,9 @@ class SolutionNoteView(APIView):
                 name="page_size",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
-                description="페이지 크기 (기본값: 10, 최대: 100)",
+                description="페이지 크기 (기본값: 20, 최대: 100)",
                 required=False,
-                default=10,
+                default=20,
             ),
         ],
         responses={
@@ -64,7 +86,11 @@ class SolutionNoteView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        # 검색 파라미터 추출
         problem_id = serializer.validated_data.get("problem_id")
+        assigned_date = serializer.validated_data.get("assigned_date")
+        updated_date = serializer.validated_data.get("updated_date")
+        query = serializer.validated_data.get("query")
 
         try:
             service = self.service_class()
@@ -72,6 +98,9 @@ class SolutionNoteView(APIView):
                 user=request.user,
                 study_id=study_id,
                 problem_id=problem_id,
+                assigned_date=assigned_date,
+                updated_date=updated_date,
+                query=query,
             )
         except ValueError as e:
             return Response(
@@ -95,7 +124,7 @@ class SolutionNoteView(APIView):
         description="스터디의 문제에 대한 풀이 노트를 작성합니다. 스터디 멤버만 작성 가능하며, 같은 문제에 대한 노트는 하나만 작성할 수 있습니다.",
         request=SolutionNoteCreateSerializer,
         responses={
-            201: SolutionNoteResponseSerializer,
+            201: SolutionNoteCreateResponseSerializer,
             400: ErrorEnvelopeSerializer,
             404: ErrorEnvelopeSerializer,
         },
@@ -125,7 +154,7 @@ class SolutionNoteView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        response_serializer = SolutionNoteResponseSerializer(solution_note)
+        response_serializer = SolutionNoteCreateResponseSerializer(solution_note)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -169,7 +198,7 @@ class SolutionNoteDetailView(APIView):
         description="풀이 노트의 내용을 수정합니다. 노트 작성자만 수정 가능합니다.",
         request=SolutionNoteUpdateSerializer,
         responses={
-            200: SolutionNoteResponseSerializer,
+            204: None,
             400: ErrorEnvelopeSerializer,
             403: ErrorEnvelopeSerializer,
             404: ErrorEnvelopeSerializer,
@@ -184,7 +213,7 @@ class SolutionNoteDetailView(APIView):
 
         try:
             service = self.service_class()
-            solution_note = service.update_solution_note(
+            service.update_solution_note(
                 user=request.user,
                 note_id=note_id,
                 content=content,
@@ -198,8 +227,7 @@ class SolutionNoteDetailView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        response_serializer = SolutionNoteResponseSerializer(solution_note)
-        return Response(response_serializer.data, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(
         summary="풀이 노트 삭제",
