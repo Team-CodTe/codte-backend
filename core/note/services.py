@@ -128,7 +128,7 @@ class SolutionNoteService:
         study_id,
         problem_id=None,
         assigned_date=None,
-        updated_date=None,
+        created_date=None,
         query=None,
     ):
         """
@@ -139,7 +139,7 @@ class SolutionNoteService:
             study_id: 스터디 ID (int)
             problem_id: 문제 ID (int, 선택)
             assigned_date: 문제 추천 날짜 (date, 선택)
-            updated_date: 작성일 (date, 선택 - updated_at 기준)
+            created_date: 작성일 (date, 선택)
             query: 통합 검색 (제목, 문제 번호, 작성자)
 
         Returns:
@@ -168,8 +168,8 @@ class SolutionNoteService:
         if assigned_date is not None:
             solution_notes = solution_notes.filter(assigned_date=assigned_date)
 
-        if updated_date is not None:
-            solution_notes = solution_notes.filter(updated_at__date=updated_date)
+        if created_date is not None:
+            solution_notes = solution_notes.filter(created_at__date=created_date)
 
         if query:
             q_filter = Q(problem__title__icontains=query) | Q(

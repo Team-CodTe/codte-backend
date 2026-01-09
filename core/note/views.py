@@ -45,10 +45,10 @@ class SolutionNoteView(APIView):
                 required=False,
             ),
             OpenApiParameter(
-                name="updatedDate",
+                name="createdDate",
                 type=OpenApiTypes.DATE,
                 location=OpenApiParameter.QUERY,
-                description="작성일 (YYYY-MM-DD, updated_at 기준)",
+                description="작성일 (YYYY-MM-DD)",
                 required=False,
             ),
             OpenApiParameter(
@@ -89,7 +89,7 @@ class SolutionNoteView(APIView):
         # 검색 파라미터 추출
         problem_id = serializer.validated_data.get("problem_id")
         assigned_date = serializer.validated_data.get("assigned_date")
-        updated_date = serializer.validated_data.get("updated_date")
+        created_date = serializer.validated_data.get("created_date")
         query = serializer.validated_data.get("query")
 
         try:
@@ -99,7 +99,7 @@ class SolutionNoteView(APIView):
                 study_id=study_id,
                 problem_id=problem_id,
                 assigned_date=assigned_date,
-                updated_date=updated_date,
+                created_date=created_date,
                 query=query,
             )
         except ValueError as e:
