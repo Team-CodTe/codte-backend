@@ -28,10 +28,10 @@ class SolutionNoteListQuerySerializer(serializers.Serializer):
     assigned_date = serializers.DateField(
         required=False, allow_null=True, help_text="문제 추천 날짜 (YYYY-MM-DD)"
     )
-    updated_date = serializers.DateField(
+    created_date = serializers.DateField(
         required=False,
         allow_null=True,
-        help_text="작성일 (YYYY-MM-DD, updated_at 기준)",
+        help_text="작성일 (YYYY-MM-DD)",
     )
     query = serializers.CharField(
         required=False,
