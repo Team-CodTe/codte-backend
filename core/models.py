@@ -17,6 +17,14 @@ class StudyRole(models.TextChoices):
     MEMBER = "member", "Member"
 
 
+class ProblemStatus(models.TextChoices):
+    """문제 풀이 상태"""
+
+    NOT_ATTEMPTED = "not_attempted", "미시도"
+    IN_PROGRESS = "in_progress", "진행중"
+    COMPLETED = "completed", "완료"
+
+
 class User(AbstractUser):
     """커스텀 User 모델"""
 
@@ -206,3 +214,44 @@ class SolutionNote(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.problem.title} ({self.study.name})"
+
+
+class ProblemSolvingStatus(models.Model):
+    """문제 풀이 상태 모델"""
+
+    assignment = models.ForeignKey(
+        "DailyAssignment",
+        on_delete=models.CASCADE,
+        related_name="solving_statuses",
+        verbose_name="일일 과제",
+    )
+    user = models.ForeignKey(
+        "User",
+        on_delete=models.CASCADE,
+        related_name="solving_statuses",
+        verbose_name="사용자",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=ProblemStatus.choices,
+        default=ProblemStatus.NOT_ATTEMPTED,
+        verbose_name="풀이 상태",
+    )
+    last_updated_at = models.DateTimeField(
+        auto_now=True, verbose_name="마지막 업데이트 시간"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일시")
+
+    class Meta:
+        db_table = "problem_solving_statuses"
+        unique_together = [("assignment", "user")]
+        indexes = [
+            models.Index(fields=["assignment", "user"]),
+            models.Index(fields=["assignment"]),
+            models.Index(fields=["user"]),
+        ]
+        verbose_name = "문제 풀이 상태"
+        verbose_name_plural = "문제 풀이 상태들"
+
+    def __str__(self):
+        return f"{self.user.email} - {self.assignment.problem.title} ({self.assignment.assigned_date}) - {self.get_status_display()}"
