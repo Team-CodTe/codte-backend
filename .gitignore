@@ -53,3 +53,5 @@ poetry.lock
 .env
 .env.local
 /.env.development
+
+.cursor
