@@ -4,17 +4,10 @@ from typing import List, Optional
 from django.db import transaction
 from django.utils import timezone
 
-from core.models import (
-    DailyAssignment,
-    Problem,
-    ProblemSolvingStatus,
-    Study,
-    StudyMember,
-)
+from core.models import DailyAssignment, Problem, Study, StudyMember
 from core.utils.solvedac import SolvedAC
 
 DAILY_ASSIGNMENT_REFRESH_COOLDOWN = 1800  # 30분
-PROBLEM_STATUS_UPDATE_COOLDOWN = 300  # 5분
 
 
 class DailyAssignmentService:
@@ -233,55 +226,3 @@ class AlreadyAssignedError(Exception):
         super().__init__(
             f"{boj_number}번 문제는 이미 오늘 추천 목록에 있는 문제입니다."
         )
-
-
-class ProblemSolvingStatusService:
-    """문제 풀이 상태 관리 서비스"""
-
-    def can_update_status(
-        self, user, study: Study, target_date: Optional[date] = None
-    ) -> tuple[bool, Optional[datetime]]:
-        """상태 업데이트 가능 여부 확인 (5분 쿨다운)
-
-        Args:
-            user: 사용자
-            study: 스터디
-            target_date: 대상 날짜 (기본값: 오늘)
-
-        Returns:
-            tuple: (업데이트 가능 여부, 다음 업데이트 가능 시간)
-                   - 업데이트 가능하면 (True, None)
-                   - 업데이트 불가능하면 (False, 다음 업데이트 가능 시간)
-        """
-        if target_date is None:
-            target_date = date.today()
-
-        # 해당 날짜의 DailyAssignment 중 가장 최근 업데이트 시간 확인
-        assignments = DailyAssignment.objects.filter(
-            study=study, assigned_date=target_date
-        )
-        if not assignments.exists():
-            return True, None
-
-        # 해당 날짜의 문제들에 대한 사용자의 가장 최근 업데이트 시간 확인
-        latest_status = (
-            ProblemSolvingStatus.objects.filter(
-                assignment__study=study,
-                assignment__assigned_date=target_date,
-                user=user,
-            )
-            .order_by("-last_updated_at")
-            .first()
-        )
-
-        if latest_status is None:
-            return True, None
-
-        next_available_at = latest_status.last_updated_at + timedelta(
-            seconds=PROBLEM_STATUS_UPDATE_COOLDOWN
-        )
-        now = timezone.now()
-
-        if now >= next_available_at:
-            return True, None
-        return False, next_available_at
