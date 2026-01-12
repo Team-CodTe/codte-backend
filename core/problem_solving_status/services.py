@@ -34,10 +34,10 @@ class ProblemSolvingStatusService:
     def can_update_status(
         self, user, study: Study, target_date: Optional[date] = None
     ) -> tuple[bool, Optional[datetime]]:
-        """상태 업데이트 가능 여부 확인 (5분 쿨다운)
+        """상태 업데이트 가능 여부 확인 (5분 쿨다운, 스터디 멤버 전체 공유)
 
         Args:
-            user: 사용자
+            user: 사용자 (쿨다운 체크에는 사용되지 않음, 스터디 전체 공유)
             study: 스터디
             target_date: 대상 날짜 (기본값: 오늘)
 
@@ -56,12 +56,12 @@ class ProblemSolvingStatusService:
         if not assignments.exists():
             return True, None
 
-        # 해당 날짜의 문제들에 대한 사용자의 가장 최근 업데이트 시간 확인
+        # 해당 날짜의 문제들에 대한 스터디의 모든 멤버 중 가장 최근 업데이트 시간 확인
+        # 쿨다운은 스터디 멤버 전체가 공유함
         latest_status = (
             ProblemSolvingStatus.objects.filter(
                 assignment__study=study,
                 assignment__assigned_date=target_date,
-                user=user,
             )
             .order_by("-last_updated_at")
             .first()
@@ -141,6 +141,9 @@ class ProblemSolvingStatusService:
             is_solved = solved_problems.get(problem_id, False)
 
             # 풀이 여부에 따라 상태 설정
+            # TODO: in_progress 상태 자동 판단 로직 추가 필요
+            # 현재는 solved.ac API로 풀었는지만 확인 가능하므로,
+            # "제출했지만 틀린 상태"를 판단하려면 백준 제출 이력 API 추가 확인 필요
             if is_solved:
                 status = ProblemStatus.COMPLETED
             else:
