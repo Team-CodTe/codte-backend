@@ -1,4 +1,4 @@
-from django.db import IntegrityError
+from django.db import IntegrityError, OperationalError
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
-from drf_spectacular.utils import extend_schema, OpenApiExample
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter
 
 from core.models import User
 from core.utils.cookie import (
@@ -89,38 +89,38 @@ class SocialLoginView(APIView):
 
         is_registered = not is_registration_required
 
-        response = Response(
-            {
-                "user": {
-                    "id": user.id,
-                    "provider": user.provider,
-                    "email": user.email,
-                    "username": user.username,
-                    "boj_username": user.boj_username,
-                    "profile_img_url": user.profile_img_url,
-                },
-                "is_registered": is_registered,
+        response_data = {
+            "user": {
+                "id": user.id,
+                "provider": user.provider,
+                "email": user.email,
+                "username": user.username,
+                "boj_username": user.boj_username,
+                "profile_img_url": user.profile_img_url,
             },
-            status=status.HTTP_200_OK,
-        )
+            "is_registered": is_registered,
+        }
+        serializer = SocialLoginResponseSerializer(data=response_data)
+        serializer.is_valid(raise_exception=True)
+        response = Response(serializer.validated_data, status=status.HTTP_200_OK)
 
         set_secure_cookie(
             response,
             "access_token",
             access_token,
-            max_age=ACCESS_TOKEN_LIFETIME,
+            max_age=int(ACCESS_TOKEN_LIFETIME.total_seconds()),
         )
         set_secure_cookie(
             response,
             "refresh_token",
             refresh_token,
-            max_age=REFRESH_TOKEN_LIFETIME,
+            max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
         )
         set_secure_cookie(
             response,
             "is_registered",
             str(is_registered).lower(),
-            max_age=REFRESH_TOKEN_LIFETIME,
+            max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
         )
 
         return response
@@ -228,18 +228,156 @@ class TokenRefreshView(APIView):
             response,
             "access_token",
             new_access_token,
-            max_age=ACCESS_TOKEN_LIFETIME,
+            max_age=int(ACCESS_TOKEN_LIFETIME.total_seconds()),
         )
         set_secure_cookie(
             response,
             "refresh_token",
             new_refresh_token,
-            max_age=REFRESH_TOKEN_LIFETIME,
+            max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
         )
         set_secure_cookie(
             response,
             "is_registered",
             str(is_registered).lower(),
-            max_age=REFRESH_TOKEN_LIFETIME,
+            max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
         )
+        return response
+
+
+def _get_test_login_description():
+    """테스트 로그인 API 설명을 동적으로 생성"""
+    base_description = "테스트용으로 특정 유저 ID로 로그인합니다. (DEBUG 모드에서만 사용 가능)"
+    
+    try:
+        # 필요한 필드만 조회하여 성능 향상
+        users = User.objects.only("id", "username").order_by('id')
+        if users.exists():
+            # 리스트 컴프리헨션으로 가독성 향상
+            user_list = [f"{user.username} : {user.id}" for user in users]
+            user_info = "\n\n사용 가능한 유저\n\n" + "\n\n".join(user_list)
+            return base_description + user_info
+    except OperationalError:
+        # DB가 준비되지 않은 경우(예: 마이그레이션 전)를 대비하여 예외 처리
+        pass
+    
+    return base_description
+
+
+@extend_schema(tags=["auth"])
+class TestLoginView(APIView):
+    """테스트용 로그인 API (DEBUG 모드에서만 사용 가능)"""
+
+    @extend_schema(
+        summary="테스트 로그인",
+        description=_get_test_login_description(),
+        request=None,
+        responses={
+            200: SocialLoginResponseSerializer,
+            400: ErrorEnvelopeSerializer,
+            403: ErrorEnvelopeSerializer,
+        },
+        parameters=[
+            OpenApiParameter(
+                name="user_id",
+                type=int,
+                location=OpenApiParameter.QUERY,
+                required=True,
+                description="로그인할 유저 ID",
+            )
+        ],
+    )
+    def post(self, request):
+        from django.conf import settings
+        from datetime import timedelta
+
+        # DEBUG 모드에서만 사용 가능
+        if not settings.DEBUG:
+            return Response(
+                {
+                    "error_code": "FORBIDDEN",
+                    "message": "테스트 로그인은 DEBUG 모드에서만 사용할 수 있습니다.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        user_id = request.query_params.get("user_id")
+        if not user_id:
+            return Response(
+                {
+                    "error_code": "MISSING_USER_ID",
+                    "message": "user_id 파라미터가 필요합니다.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            user_id = int(user_id)
+        except ValueError:
+            return Response(
+                {
+                    "error_code": "INVALID_USER_ID",
+                    "message": "유효하지 않은 user_id입니다.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {
+                    "error_code": "USER_NOT_FOUND",
+                    "message": f"유저 ID {user_id}를 찾을 수 없습니다.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 만료되지 않는 토큰 생성 (100년 후 만료)
+        test_token_lifetime = timedelta(days=36500)
+
+        refresh = RefreshToken.for_user(user)
+        access_token_obj = refresh.access_token
+        access_token_obj.set_exp(from_time=None, lifetime=test_token_lifetime)
+
+        access_token = str(access_token_obj)
+        refresh_token = str(refresh)
+
+        is_registered = bool(user.boj_username)
+
+        response_data = {
+            "user": {
+                "id": user.id,
+                "provider": user.provider,
+                "email": user.email,
+                "username": user.username,
+                "boj_username": user.boj_username,
+                "profile_img_url": user.profile_img_url,
+            },
+            "is_registered": is_registered,
+        }
+        serializer = SocialLoginResponseSerializer(data=response_data)
+        serializer.is_valid(raise_exception=True)
+        response = Response(serializer.validated_data, status=status.HTTP_200_OK)
+
+        # 테스트용 access token 쿠키는 토큰 만료 시간과 동일하게 설정
+        set_secure_cookie(
+            response,
+            "access_token",
+            access_token,
+            max_age=int(test_token_lifetime.total_seconds()),
+        )
+        set_secure_cookie(
+            response,
+            "refresh_token",
+            refresh_token,
+            max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
+        )
+        set_secure_cookie(
+            response,
+            "is_registered",
+            str(is_registered).lower(),
+            max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
+        )
+
         return response
