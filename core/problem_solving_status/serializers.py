@@ -62,6 +62,7 @@ class MemberStatusSerializer(serializers.Serializer):
     member_id = serializers.IntegerField()
     member_email = serializers.EmailField()
     username = serializers.CharField(allow_null=True)
+    boj_username = serializers.CharField(allow_null=True)
     problem_status = serializers.CharField()
     note_status = serializers.CharField()
     last_updated_at = serializers.DateTimeField(allow_null=True)
@@ -93,6 +94,7 @@ class AssignmentStatusResponseSerializer(serializers.Serializer):
     note_status_summary = NoteStatusSummarySerializer()
     can_update = serializers.BooleanField()
     next_available_at = serializers.DateTimeField(allow_null=True)
+    last_updated_at = serializers.DateTimeField(allow_null=True)
 
 
 class MemberWithAssignmentsSerializer(serializers.Serializer):
@@ -101,6 +103,7 @@ class MemberWithAssignmentsSerializer(serializers.Serializer):
     member_id = serializers.IntegerField()
     member_email = serializers.EmailField()
     username = serializers.CharField(allow_null=True)
+    boj_username = serializers.CharField(allow_null=True)
     assignments = ProblemStatusSerializer(many=True)
     problem_status_summary = StatusSummarySerializer()
     note_status_summary = NoteStatusSummarySerializer()
@@ -122,6 +125,9 @@ class GroupAssignmentStatusResponseSerializer(serializers.Serializer):
     members = MemberWithAssignmentsSerializer(many=True)
     total_members = serializers.IntegerField()
     overall_summary = OverallSummarySerializer()
+    can_update = serializers.BooleanField()
+    next_available_at = serializers.DateTimeField(allow_null=True)
+    last_updated_at = serializers.DateTimeField(allow_null=True)
 
 
 class ProblemMembersStatusResponseSerializer(serializers.Serializer):
@@ -151,6 +157,7 @@ class MyStatisticsResponseSerializer(serializers.Serializer):
     member_id = serializers.IntegerField()
     member_email = serializers.EmailField()
     username = serializers.CharField(allow_null=True)
+    boj_username = serializers.CharField(allow_null=True)
     total_assigned = serializers.IntegerField()
     problem_status_summary = StatusSummarySerializer()
     note_status_summary = NoteStatusSummarySerializer()
@@ -166,6 +173,7 @@ class MemberStatisticsItemSerializer(serializers.Serializer):
     member_id = serializers.IntegerField()
     member_email = serializers.EmailField()
     username = serializers.CharField(allow_null=True)
+    boj_username = serializers.CharField(allow_null=True)
     total_assigned = serializers.IntegerField()
     problem_status_summary = StatusSummarySerializer()
     note_status_summary = NoteStatusSummarySerializer()
@@ -195,6 +203,7 @@ class MemberStatisticsResponseSerializer(serializers.Serializer):
     member_id = serializers.IntegerField()
     member_email = serializers.EmailField()
     username = serializers.CharField(allow_null=True)
+    boj_username = serializers.CharField(allow_null=True)
     total_assigned = serializers.IntegerField()
     problem_status_summary = StatusSummarySerializer()
     note_status_summary = NoteStatusSummarySerializer()
@@ -210,4 +219,3 @@ class UpdateCooldownErrorSerializer(serializers.Serializer):
     error_code = serializers.CharField()
     message = serializers.CharField()
     next_available_at = serializers.DateTimeField()
-

@@ -79,7 +79,6 @@ class ProblemSolvingStatusService:
             return True, None
         return False, next_available_at
 
-
     @transaction.atomic
     def update_solving_status(
         self,
@@ -108,9 +107,7 @@ class ProblemSolvingStatusService:
         study = Study.objects.get(id=study_id)
 
         # 쿨다운 체크
-        can_update, next_available_at = self.can_update_status(
-            user, study, target_date
-        )
+        can_update, next_available_at = self.can_update_status(user, study, target_date)
         if not can_update:
             raise UpdateCooldownError(next_available_at)
 
@@ -183,9 +180,11 @@ class ProblemSolvingStatusService:
         study = Study.objects.get(id=study_id)
 
         # 해당 날짜의 모든 DailyAssignment 조회
-        assignments = DailyAssignment.objects.filter(
-            study=study, assigned_date=target_date
-        ).select_related("problem").order_by("problem__boj_number")
+        assignments = (
+            DailyAssignment.objects.filter(study=study, assigned_date=target_date)
+            .select_related("problem")
+            .order_by("problem_id")
+        )
 
         if view == "me":
             return self._get_my_solving_statuses(user, study, assignments, target_date)
@@ -194,9 +193,7 @@ class ProblemSolvingStatusService:
         else:
             raise ValueError(f"잘못된 view 값입니다: {view}")
 
-    def _get_my_solving_statuses(
-        self, user, study, assignments, target_date
-    ) -> dict:
+    def _get_my_solving_statuses(self, user, study, assignments, target_date) -> dict:
         """현재 사용자의 문제 풀이 상태 조회"""
         if not assignments.exists():
             return {
@@ -215,6 +212,7 @@ class ProblemSolvingStatusService:
                 },
                 "can_update": True,
                 "next_available_at": None,
+                "last_updated_at": None,
             }
 
         # 사용자의 ProblemSolvingStatus 조회
@@ -244,14 +242,13 @@ class ProblemSolvingStatusService:
             "completed_count": 0,
         }
         note_status_counts = {"not_completed_count": 0, "completed_count": 0}
+        latest_updated_at = None
 
         for assignment in assignments:
             status = status_dict.get(assignment.id)
             note = note_dict.get(assignment.problem_id)
 
-            problem_status = (
-                status.status if status else ProblemStatus.NOT_ATTEMPTED
-            )
+            problem_status = status.status if status else ProblemStatus.NOT_ATTEMPTED
             note_status = "completed" if note else "not_completed"
 
             assignment_list.append(
@@ -280,6 +277,14 @@ class ProblemSolvingStatusService:
             else:
                 note_status_counts["completed_count"] += 1
 
+            # 가장 최근 업데이트 시간 추적
+            if status and status.last_updated_at:
+                if (
+                    latest_updated_at is None
+                    or status.last_updated_at > latest_updated_at
+                ):
+                    latest_updated_at = status.last_updated_at
+
         return {
             "date": target_date.isoformat(),
             "view": "me",
@@ -291,10 +296,16 @@ class ProblemSolvingStatusService:
             "next_available_at": (
                 next_available_at.isoformat() if next_available_at else None
             ),
+            "last_updated_at": (
+                latest_updated_at.isoformat() if latest_updated_at else None
+            ),
         }
 
     def _get_group_solving_statuses(self, study, assignments, target_date) -> dict:
         """모든 멤버의 문제 풀이 상태 조회 (그룹 조회)"""
+        # 쿨다운 체크 (스터디 전체 공유)
+        can_update, next_available_at = self.can_update_status(None, study, target_date)
+
         if not assignments.exists():
             return {
                 "date": target_date.isoformat(),
@@ -314,6 +325,11 @@ class ProblemSolvingStatusService:
                         "total": 0,
                     },
                 },
+                "can_update": can_update,
+                "next_available_at": (
+                    next_available_at.isoformat() if next_available_at else None
+                ),
+                "last_updated_at": None,
             }
 
         # 스터디 멤버 조회
@@ -335,9 +351,7 @@ class ProblemSolvingStatusService:
         ).select_related("problem", "user")
 
         # note를 (problem_id, user_id)로 매핑
-        note_dict = {
-            (note.problem_id, note.user_id): note for note in solution_notes
-        }
+        note_dict = {(note.problem_id, note.user_id): note for note in solution_notes}
 
         # 멤버별로 상태 정보 구성
         members_list = []
@@ -352,6 +366,7 @@ class ProblemSolvingStatusService:
             "completed_count": 0,
             "total": 0,
         }
+        latest_updated_at = None
 
         for member in members:
             member_assignments = []
@@ -412,11 +427,20 @@ class ProblemSolvingStatusService:
                 else:
                     overall_note_counts["completed_count"] += 1
 
+                # 가장 최근 업데이트 시간 추적
+                if status and status.last_updated_at:
+                    if (
+                        latest_updated_at is None
+                        or status.last_updated_at > latest_updated_at
+                    ):
+                        latest_updated_at = status.last_updated_at
+
             members_list.append(
                 {
                     "member_id": member.user_id,
                     "member_email": member.user.email,
-                    "username": member.user.boj_username,
+                    "username": member.user.username,
+                    "boj_username": member.user.boj_username,
                     "assignments": member_assignments,
                     "problem_status_summary": member_problem_counts,
                     "note_status_summary": member_note_counts,
@@ -433,6 +457,13 @@ class ProblemSolvingStatusService:
                 "problem_status_summary": overall_problem_counts,
                 "note_status_summary": overall_note_counts,
             },
+            "can_update": can_update,
+            "next_available_at": (
+                next_available_at.isoformat() if next_available_at else None
+            ),
+            "last_updated_at": (
+                latest_updated_at.isoformat() if latest_updated_at else None
+            ),
         }
 
     def get_problem_members_status(self, study_id: int, problem_id: int) -> dict:
@@ -516,16 +547,15 @@ class ProblemSolvingStatusService:
             status = status_dict.get(member.user_id)
             note = note_dict.get(member.user_id)
 
-            problem_status = (
-                status.status if status else ProblemStatus.NOT_ATTEMPTED
-            )
+            problem_status = status.status if status else ProblemStatus.NOT_ATTEMPTED
             note_status = "completed" if note else "not_completed"
 
             members_status_list.append(
                 {
                     "member_id": member.user_id,
                     "member_email": member.user.email,
-                    "username": member.user.boj_username,
+                    "username": member.user.username,
+                    "boj_username": member.user.boj_username,
                     "problem_status": problem_status,
                     "note_status": note_status,
                     "last_updated_at": (
@@ -599,9 +629,7 @@ class ProblemSolvingStatusService:
         # 날짜 범위 필터링
         assignments_query = DailyAssignment.objects.filter(study=study)
         if start_date:
-            assignments_query = assignments_query.filter(
-                assigned_date__gte=start_date
-            )
+            assignments_query = assignments_query.filter(assigned_date__gte=start_date)
         if end_date:
             assignments_query = assignments_query.filter(assigned_date__lte=end_date)
 
@@ -635,9 +663,7 @@ class ProblemSolvingStatusService:
             status = status_dict.get(assignment.id)
             note = note_dict.get(assignment.problem_id)
 
-            problem_status = (
-                status.status if status else ProblemStatus.NOT_ATTEMPTED
-            )
+            problem_status = status.status if status else ProblemStatus.NOT_ATTEMPTED
             note_status = "completed" if note else "not_completed"
 
             if problem_status == ProblemStatus.NOT_ATTEMPTED:
@@ -671,7 +697,8 @@ class ProblemSolvingStatusService:
             "view": "me",
             "member_id": user.id,
             "member_email": user.email,
-            "username": user.boj_username,
+            "username": user.username,
+            "boj_username": user.boj_username,
             "total_assigned": total_assigned,
             "problem_status_summary": problem_status_counts,
             "note_status_summary": note_status_counts,
@@ -691,9 +718,7 @@ class ProblemSolvingStatusService:
         # 날짜 범위 필터링
         assignments_query = DailyAssignment.objects.filter(study=study)
         if start_date:
-            assignments_query = assignments_query.filter(
-                assigned_date__gte=start_date
-            )
+            assignments_query = assignments_query.filter(assigned_date__gte=start_date)
         if end_date:
             assignments_query = assignments_query.filter(assigned_date__lte=end_date)
 
@@ -793,7 +818,8 @@ class ProblemSolvingStatusService:
                 {
                     "member_id": member.user_id,
                     "member_email": member.user.email,
-                    "username": member.user.boj_username,
+                    "username": member.user.username,
+                    "boj_username": member.user.boj_username,
                     "total_assigned": member_total,
                     "problem_status_summary": member_problem_counts,
                     "note_status_summary": member_note_counts,
@@ -804,9 +830,7 @@ class ProblemSolvingStatusService:
 
         # 평균 완료율 계산
         average_problem_rate = (
-            sum(completion_rates) / len(completion_rates)
-            if completion_rates
-            else 0.0
+            sum(completion_rates) / len(completion_rates) if completion_rates else 0.0
         )
         average_note_rate = (
             sum(
@@ -843,7 +867,11 @@ class ProblemSolvingStatusService:
         }
 
     def _get_member_statistics(
-        self, study, member_id: int, start_date: Optional[date], end_date: Optional[date]
+        self,
+        study,
+        member_id: int,
+        start_date: Optional[date],
+        end_date: Optional[date],
     ) -> dict:
         """특정 멤버의 통계 조회"""
         from core.models import User
@@ -853,9 +881,7 @@ class ProblemSolvingStatusService:
         # 날짜 범위 필터링
         assignments_query = DailyAssignment.objects.filter(study=study)
         if start_date:
-            assignments_query = assignments_query.filter(
-                assigned_date__gte=start_date
-            )
+            assignments_query = assignments_query.filter(assigned_date__gte=start_date)
         if end_date:
             assignments_query = assignments_query.filter(assigned_date__lte=end_date)
 
@@ -889,9 +915,7 @@ class ProblemSolvingStatusService:
             status = status_dict.get(assignment.id)
             note = note_dict.get(assignment.problem_id)
 
-            problem_status = (
-                status.status if status else ProblemStatus.NOT_ATTEMPTED
-            )
+            problem_status = status.status if status else ProblemStatus.NOT_ATTEMPTED
             note_status = "completed" if note else "not_completed"
 
             if problem_status == ProblemStatus.NOT_ATTEMPTED:
@@ -925,7 +949,8 @@ class ProblemSolvingStatusService:
             "view": "member",
             "member_id": member.id,
             "member_email": member.email,
-            "username": member.boj_username,
+            "username": member.username,
+            "boj_username": member.boj_username,
             "total_assigned": total_assigned,
             "problem_status_summary": problem_status_counts,
             "note_status_summary": note_status_counts,
@@ -1074,4 +1099,3 @@ class ProblemSolvingStatusService:
             )
 
         return daily_statistics
-
