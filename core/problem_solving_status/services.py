@@ -212,7 +212,9 @@ class ProblemSolvingStatusService:
                 },
                 "can_update": True,
                 "next_available_at": None,
-                "last_updated_at": None,
+                "last_updated_at": timezone.make_aware(
+                    datetime.combine(target_date, datetime.min.time())
+                ).isoformat(),
             }
 
         # 사용자의 ProblemSolvingStatus 조회
@@ -297,7 +299,11 @@ class ProblemSolvingStatusService:
                 next_available_at.isoformat() if next_available_at else None
             ),
             "last_updated_at": (
-                latest_updated_at.isoformat() if latest_updated_at else None
+                latest_updated_at.isoformat()
+                if latest_updated_at
+                else timezone.make_aware(
+                    datetime.combine(target_date, datetime.min.time())
+                ).isoformat()
             ),
         }
 
@@ -329,7 +335,9 @@ class ProblemSolvingStatusService:
                 "next_available_at": (
                     next_available_at.isoformat() if next_available_at else None
                 ),
-                "last_updated_at": None,
+                "last_updated_at": timezone.make_aware(
+                    datetime.combine(target_date, datetime.min.time())
+                ).isoformat(),
             }
 
         # 스터디 멤버 조회
@@ -462,7 +470,11 @@ class ProblemSolvingStatusService:
                 next_available_at.isoformat() if next_available_at else None
             ),
             "last_updated_at": (
-                latest_updated_at.isoformat() if latest_updated_at else None
+                latest_updated_at.isoformat()
+                if latest_updated_at
+                else timezone.make_aware(
+                    datetime.combine(target_date, datetime.min.time())
+                ).isoformat()
             ),
         }
 
