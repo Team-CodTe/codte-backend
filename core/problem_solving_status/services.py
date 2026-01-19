@@ -638,6 +638,34 @@ class ProblemSolvingStatusService:
         self, user, study, start_date: Optional[date], end_date: Optional[date]
     ) -> dict:
         """현재 사용자의 통계 조회"""
+        return self._calculate_user_statistics(
+            user=user,
+            study=study,
+            start_date=start_date,
+            end_date=end_date,
+            view="me",
+        )
+
+    def _calculate_user_statistics(
+        self,
+        user,
+        study,
+        start_date: Optional[date],
+        end_date: Optional[date],
+        view: str,
+    ) -> dict:
+        """사용자 통계를 계산하는 공통 헬퍼 메서드
+
+        Args:
+            user: 통계를 계산할 사용자
+            study: 스터디
+            start_date: 시작 날짜
+            end_date: 종료 날짜
+            view: 조회 방식 ('me' 또는 'member')
+
+        Returns:
+            dict: 통계 정보
+        """
         # 날짜 범위 필터링
         assignments_query = DailyAssignment.objects.filter(study=study)
         if start_date:
@@ -706,7 +734,7 @@ class ProblemSolvingStatusService:
         )
 
         return {
-            "view": "me",
+            "view": view,
             "member_id": user.id,
             "member_email": user.email,
             "username": user.username,
@@ -893,90 +921,13 @@ class ProblemSolvingStatusService:
 
         member = study_member.user
 
-        # 날짜 범위 필터링
-        assignments_query = DailyAssignment.objects.filter(study=study)
-        if start_date:
-            assignments_query = assignments_query.filter(assigned_date__gte=start_date)
-        if end_date:
-            assignments_query = assignments_query.filter(assigned_date__lte=end_date)
-
-        assignments = assignments_query.select_related("problem")
-
-        # 멤버의 ProblemSolvingStatus 조회
-        statuses = ProblemSolvingStatus.objects.filter(
-            assignment__in=assignments, user=member
-        ).select_related("assignment__problem")
-
-        # 멤버의 SolutionNote 조회
-        problems = [a.problem for a in assignments]
-        solution_notes = SolutionNote.objects.filter(
-            study=study, user=member, problem__in=problems
-        ).select_related("problem")
-
-        # status와 note를 매핑
-        status_dict = {status.assignment_id: status for status in statuses}
-        note_dict = {note.problem_id: note for note in solution_notes}
-
-        # 전체 통계 계산
-        total_assigned = len(assignments)
-        problem_status_counts = {
-            "not_attempted_count": 0,
-            "in_progress_count": 0,
-            "completed_count": 0,
-        }
-        note_status_counts = {"not_completed_count": 0, "completed_count": 0}
-
-        for assignment in assignments:
-            status = status_dict.get(assignment.id)
-            note = note_dict.get(assignment.problem_id)
-
-            problem_status = status.status if status else ProblemStatus.NOT_ATTEMPTED
-            note_status = "completed" if note else "not_completed"
-
-            if problem_status == ProblemStatus.NOT_ATTEMPTED:
-                problem_status_counts["not_attempted_count"] += 1
-            elif problem_status == ProblemStatus.IN_PROGRESS:
-                problem_status_counts["in_progress_count"] += 1
-            elif problem_status == ProblemStatus.COMPLETED:
-                problem_status_counts["completed_count"] += 1
-
-            if note_status == "not_completed":
-                note_status_counts["not_completed_count"] += 1
-            else:
-                note_status_counts["completed_count"] += 1
-
-        # 완료율 계산
-        completed_count = problem_status_counts["completed_count"]
-        problem_completion_rate = (
-            completed_count / total_assigned if total_assigned > 0 else 0.0
+        return self._calculate_user_statistics(
+            user=member,
+            study=study,
+            start_date=start_date,
+            end_date=end_date,
+            view="member",
         )
-        note_completed_count = note_status_counts["completed_count"]
-        note_completion_rate = (
-            note_completed_count / total_assigned if total_assigned > 0 else 0.0
-        )
-
-        # 일별 통계 계산
-        daily_statistics = self._calculate_daily_statistics(
-            member, study, assignments, status_dict, note_dict, start_date, end_date
-        )
-
-        return {
-            "view": "member",
-            "member_id": member.id,
-            "member_email": member.email,
-            "username": member.username,
-            "boj_username": member.boj_username,
-            "total_assigned": total_assigned,
-            "problem_status_summary": problem_status_counts,
-            "note_status_summary": note_status_counts,
-            "problem_completion_rate": problem_completion_rate,
-            "note_completion_rate": note_completion_rate,
-            "date_range": {
-                "start_date": start_date.isoformat() if start_date else None,
-                "end_date": end_date.isoformat() if end_date else None,
-            },
-            "daily_statistics": daily_statistics,
-        }
 
     def _calculate_daily_statistics(
         self,
