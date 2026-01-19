@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from core.models import (
     DailyAssignment,
+    Problem,
     ProblemSolvingStatus,
     ProblemStatus,
     SolutionNote,
@@ -220,7 +221,7 @@ class ProblemSolvingStatusService:
         # 사용자의 ProblemSolvingStatus 조회
         statuses = ProblemSolvingStatus.objects.filter(
             assignment__in=assignments, user=user
-        ).select_related("assignment", "assignment__problem")
+        ).select_related("assignment__problem")
 
         # status를 assignment_id로 매핑
         status_dict = {status.assignment_id: status for status in statuses}
@@ -346,7 +347,7 @@ class ProblemSolvingStatusService:
         # 모든 멤버의 ProblemSolvingStatus 조회
         statuses = ProblemSolvingStatus.objects.filter(
             assignment__in=assignments
-        ).select_related("assignment", "assignment__problem", "user")
+        ).select_related("assignment__problem", "user")
 
         # status를 (assignment_id, user_id)로 매핑
         status_dict = {
@@ -490,7 +491,6 @@ class ProblemSolvingStatusService:
         """
         # 스터디 및 문제 조회
         study = Study.objects.get(id=study_id)
-        from core.models import Problem
 
         problem = Problem.objects.get(id=problem_id)
 
@@ -650,7 +650,7 @@ class ProblemSolvingStatusService:
         # 사용자의 ProblemSolvingStatus 조회
         statuses = ProblemSolvingStatus.objects.filter(
             assignment__in=assignments, user=user
-        ).select_related("assignment", "assignment__problem")
+        ).select_related("assignment__problem")
 
         # 사용자의 SolutionNote 조회
         problems = [a.problem for a in assignments]
@@ -742,7 +742,7 @@ class ProblemSolvingStatusService:
         # 모든 멤버의 ProblemSolvingStatus 조회
         statuses = ProblemSolvingStatus.objects.filter(
             assignment__in=assignments
-        ).select_related("assignment", "assignment__problem", "user")
+        ).select_related("assignment__problem", "user")
 
         # 모든 멤버의 SolutionNote 조회
         problems = [a.problem for a in assignments]
@@ -767,7 +767,6 @@ class ProblemSolvingStatusService:
 
         # 멤버별 통계 계산
         members_statistics = []
-        completion_rates = []
 
         for member in members:
             member_problem_counts = {
@@ -824,7 +823,6 @@ class ProblemSolvingStatusService:
                 if member_total > 0
                 else 0.0
             )
-            completion_rates.append(member_problem_rate)
 
             members_statistics.append(
                 {
@@ -840,20 +838,16 @@ class ProblemSolvingStatusService:
                 }
             )
 
-        # 평균 완료율 계산
+        # 전체 그룹의 평균 완료율 계산 (심슨의 역설 방지)
+        # 각 멤버의 완료율을 평균하는 대신, 전체 완료 수 / 전체 할당 수로 계산
         average_problem_rate = (
-            sum(completion_rates) / len(completion_rates) if completion_rates else 0.0
+            overall_problem_counts["completed_count"] / total_assigned
+            if total_assigned > 0
+            else 0.0
         )
         average_note_rate = (
-            sum(
-                [
-                    m["note_completion_rate"]
-                    for m in members_statistics
-                    if m["total_assigned"] > 0
-                ]
-            )
-            / len([m for m in members_statistics if m["total_assigned"] > 0])
-            if members_statistics
+            overall_note_counts["completed_count"] / total_assigned
+            if total_assigned > 0
             else 0.0
         )
 
@@ -886,9 +880,18 @@ class ProblemSolvingStatusService:
         end_date: Optional[date],
     ) -> dict:
         """특정 멤버의 통계 조회"""
-        from core.models import User
 
-        member = User.objects.get(id=member_id)
+        # member_id가 해당 study의 멤버인지 확인
+        study_member = StudyMember.objects.filter(
+            study=study, user_id=member_id
+        ).first()
+
+        if not study_member:
+            raise ValueError(
+                f"해당 스터디에 속하지 않은 사용자입니다. (member_id: {member_id})"
+            )
+
+        member = study_member.user
 
         # 날짜 범위 필터링
         assignments_query = DailyAssignment.objects.filter(study=study)
@@ -902,7 +905,7 @@ class ProblemSolvingStatusService:
         # 멤버의 ProblemSolvingStatus 조회
         statuses = ProblemSolvingStatus.objects.filter(
             assignment__in=assignments, user=member
-        ).select_related("assignment", "assignment__problem")
+        ).select_related("assignment__problem")
 
         # 멤버의 SolutionNote 조회
         problems = [a.problem for a in assignments]

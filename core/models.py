@@ -1,4 +1,5 @@
 import secrets
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -53,7 +54,7 @@ class Study(models.Model):
     """스터디 모델"""
 
     owner = models.ForeignKey(
-        "User",
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="owned_studies",
         verbose_name="소유자",
@@ -110,7 +111,7 @@ class StudyMember(models.Model):
         "Study", on_delete=models.CASCADE, related_name="members", verbose_name="스터디"
     )
     user = models.ForeignKey(
-        "User",
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="study_memberships",
         verbose_name="사용자",
@@ -189,7 +190,7 @@ class SolutionNote(models.Model):
         verbose_name="스터디",
     )
     user = models.ForeignKey(
-        "User",
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="solution_notes",
         verbose_name="사용자",
@@ -226,7 +227,7 @@ class ProblemSolvingStatus(models.Model):
         verbose_name="일일 과제",
     )
     user = models.ForeignKey(
-        "User",
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="solving_statuses",
         verbose_name="사용자",
