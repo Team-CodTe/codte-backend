@@ -155,7 +155,9 @@ class DailyAssignmentService:
             DailyAssignment.objects.filter(
                 study=study,
                 assigned_date=target_date,
-            ).select_related("problem")
+            )
+            .select_related("problem")
+            .order_by("problem_id")
         )
 
     @transaction.atomic

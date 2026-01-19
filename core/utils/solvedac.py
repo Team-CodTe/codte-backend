@@ -114,6 +114,56 @@ class SolvedAC:
         response.raise_for_status()
         return response.json()
 
+    def check_user_solved_problems(
+        self, username: str, problem_ids: List[int]
+    ) -> dict[int, bool]:
+        """
+        사용자가 여러 문제를 풀었는지 한 번에 확인
+
+        Args:
+            username: 백준 사용자명
+            problem_ids: 백준 문제 번호 리스트 (단일 문제도 리스트로 전달 가능)
+
+        Returns:
+            dict: {problem_id: is_solved} 형태의 딕셔너리
+                  - True: 문제를 풀었음
+                  - False: 문제를 풀지 않았음
+        """
+        if not problem_ids:
+            return {}
+
+        try:
+            # 여러 문제를 한 번에 쿼리: (id:3018|id:1000|id:3019) -@username
+            problem_query = "|".join([f"id:{pid}" for pid in problem_ids])
+            query = f"({problem_query}) -@{username}"
+
+            response = requests.get(
+                f"{SOLVED_AC_URL}/search/problem",
+                params={
+                    "query": query,
+                    "page": 1,
+                },
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            # 결과에 나온 문제 ID들 (풀지 않은 문제들)
+            unsolved_problem_ids = {
+                item.get("problemId") for item in data.get("items", [])
+            }
+
+            # 각 문제에 대해 풀이 여부 확인
+            result = {}
+            for problem_id in problem_ids:
+                # 결과에 나오지 않았으면 푼 것
+                result[problem_id] = problem_id not in unsolved_problem_ids
+
+            return result
+        except requests.RequestException:
+            # API 호출 실패 시 모든 문제를 풀지 않은 것으로 처리
+            return {pid: False for pid in problem_ids}
+
 
 class ProblemNotFoundError(Exception):
     """문제를 찾을 수 없는 경우 발생하는 예외"""

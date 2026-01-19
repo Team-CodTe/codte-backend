@@ -215,6 +215,7 @@ class StudyListView(APIView):
             StudyMember.objects.filter(user=request.user)
             .select_related("study")
             .annotate(member_count=Count("study__members"))
+            .order_by("study__id")
         )
 
         serializer = StudyListSerializer(study_memberships, many=True)
