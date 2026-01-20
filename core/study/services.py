@@ -30,10 +30,6 @@ class StudyService:
 
         return study
 
-
-class StudyMemberService:
-    """스터디 멤버 관련 비즈니스 로직 서비스"""
-
     def join_study(self, user, invite_code):
         """
         초대 코드를 사용하여 스터디에 가입합니다.

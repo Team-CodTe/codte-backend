@@ -17,10 +17,7 @@ from .serializers import (
     StudyListSerializer,
 )
 from core.common.serializers import ErrorEnvelopeSerializer
-from .services import (
-    StudyService,
-    StudyMemberService,
-)
+from .services import StudyService
 from .permissions import IsStudyOwner, IsStudyMember
 
 
@@ -128,7 +125,7 @@ class StudyJoinView(APIView):
     """스터디 가입 API"""
 
     permission_classes = [IsAuthenticated]
-    service_class = StudyMemberService
+    service_class = StudyService
 
     @extend_schema(
         summary="스터디 가입",
