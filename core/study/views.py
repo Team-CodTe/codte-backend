@@ -15,6 +15,7 @@ from .serializers import (
     StudyJoinSerializer,
     StudyJoinResponseSerializer,
     StudyListSerializer,
+    StudyMemberListSerializer,
 )
 from core.common.serializers import ErrorEnvelopeSerializer
 from .services import (
@@ -220,3 +221,140 @@ class StudyListView(APIView):
 
         serializer = StudyListSerializer(study_memberships, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema(tags=["studies"])
+class StudyMemberListView(APIView):
+    """스터디 멤버 목록 조회 API"""
+
+    permission_classes = [IsAuthenticated, IsStudyMember]
+
+    @extend_schema(
+        summary="스터디 멤버 목록 조회",
+        description="스터디에 가입한 멤버 목록을 조회합니다. 스터디 멤버만 조회 가능합니다.",
+        responses={200: StudyMemberListSerializer(many=True)},
+    )
+    def get(self, request, study_id):
+        study = get_object_or_404(Study, id=study_id)
+        self.check_object_permissions(request, study)
+
+        members = (
+            StudyMember.objects.filter(study=study)
+            .select_related("user")
+            .order_by("joined_at")
+        )
+
+        serializer = StudyMemberListSerializer(members, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema(tags=["studies"])
+class StudyMemberKickView(APIView):
+    """스터디 멤버 강제 퇴출 API"""
+
+    permission_classes = [IsAuthenticated, IsStudyOwner]
+
+    @extend_schema(
+        summary="스터디 멤버 강제 퇴출",
+        description="스터디장이 특정 멤버를 스터디에서 강제 퇴출시킵니다. 스터디장 자신은 퇴출할 수 없습니다.",
+        responses={
+            204: None,
+            400: ErrorEnvelopeSerializer,
+            404: ErrorEnvelopeSerializer,
+        },
+    )
+    def delete(self, request, study_id, member_id):
+        study = get_object_or_404(Study, id=study_id)
+        self.check_object_permissions(request, study)
+
+        # 퇴출 대상 멤버 조회
+        membership = StudyMember.objects.filter(
+            study_id=study_id, user_id=member_id
+        ).first()
+
+        if not membership:
+            return Response(
+                {
+                    "error_code": "MEMBER_NOT_FOUND",
+                    "message": "해당 멤버를 찾을 수 없습니다.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # 스터디장은 퇴출 불가
+        if membership.role == StudyRole.OWNER:
+            return Response(
+                {
+                    "error_code": "CANNOT_KICK_OWNER",
+                    "message": "스터디장은 퇴출할 수 없습니다.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        membership.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(tags=["studies"])
+class StudyOwnerTransferView(APIView):
+    """스터디장 위임 API"""
+
+    permission_classes = [IsAuthenticated, IsStudyOwner]
+
+    @extend_schema(
+        summary="스터디장 위임",
+        description="현재 스터디장이 다른 멤버에게 스터디장 권한을 위임합니다.",
+        responses={
+            200: None,
+            400: ErrorEnvelopeSerializer,
+            404: ErrorEnvelopeSerializer,
+        },
+    )
+    def patch(self, request, study_id, member_id):
+        study = get_object_or_404(Study, id=study_id)
+        self.check_object_permissions(request, study)
+
+        # 새 스터디장이 될 멤버 조회
+        new_owner_membership = StudyMember.objects.filter(
+            study_id=study_id, user_id=member_id
+        ).first()
+
+        if not new_owner_membership:
+            return Response(
+                {
+                    "error_code": "MEMBER_NOT_FOUND",
+                    "message": "해당 멤버를 찾을 수 없습니다.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # 자기 자신에게 위임 불가
+        if new_owner_membership.user_id == request.user.id:
+            return Response(
+                {
+                    "error_code": "CANNOT_TRANSFER_TO_SELF",
+                    "message": "자기 자신에게는 위임할 수 없습니다.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 현재 스터디장의 멤버십 조회
+        current_owner_membership = StudyMember.objects.get(
+            study_id=study_id, user=request.user
+        )
+
+        # 역할 교체
+        current_owner_membership.role = StudyRole.MEMBER
+        current_owner_membership.save()
+
+        new_owner_membership.role = StudyRole.OWNER
+        new_owner_membership.save()
+
+        # Study.owner 업데이트
+        study.owner = new_owner_membership.user
+        study.save()
+
+        return Response(
+            {"message": "스터디장이 성공적으로 위임되었습니다."},
+            status=status.HTTP_200_OK,
+        )

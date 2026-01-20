@@ -5,6 +5,9 @@ from .views import (
     StudyJoinView,
     StudyLeaveView,
     StudyListView,
+    StudyMemberListView,
+    StudyMemberKickView,
+    StudyOwnerTransferView,
 )
 
 urlpatterns = [
@@ -32,5 +35,20 @@ urlpatterns = [
         "studies/<int:study_id>/leave/",
         StudyLeaveView.as_view(),
         name="study_leave",
+    ),
+    path(
+        "studies/<int:study_id>/members/",
+        StudyMemberListView.as_view(),
+        name="study_member_list",
+    ),
+    path(
+        "studies/<int:study_id>/members/<int:member_id>/",
+        StudyMemberKickView.as_view(),
+        name="study_member_kick",
+    ),
+    path(
+        "studies/<int:study_id>/members/<int:member_id>/owner/",
+        StudyOwnerTransferView.as_view(),
+        name="study_owner_transfer",
     ),
 ]
