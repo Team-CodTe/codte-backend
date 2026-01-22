@@ -94,6 +94,7 @@ class StudyOwnerTransferView(APIView):
     @extend_schema(
         summary="스터디장 위임",
         description="현재 스터디장이 다른 멤버에게 스터디장 권한을 위임합니다.",
+        request=None,
         responses={
             204: None,
             400: ErrorEnvelopeSerializer,

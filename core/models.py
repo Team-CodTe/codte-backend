@@ -256,3 +256,25 @@ class ProblemSolvingStatus(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.assignment.problem.title} ({self.assignment.assigned_date}) - {self.get_status_display()}"
+
+
+class SolutionNoteReview(models.Model):
+    """AI 풀이 노트 리뷰 모델"""
+
+    solution_note = models.OneToOneField(
+        "SolutionNote",
+        on_delete=models.CASCADE,
+        related_name="solution_note_review",
+        verbose_name="풀이 노트",
+    )
+    review_content = models.TextField(verbose_name="리뷰 내용")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일시")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일시")
+
+    class Meta:
+        db_table = "solution_note_reviews"
+        verbose_name = "풀이 노트 리뷰"
+        verbose_name_plural = "풀이 노트 리뷰들"
+
+    def __str__(self):
+        return f"Review for {self.solution_note}"

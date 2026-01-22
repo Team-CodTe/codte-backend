@@ -33,6 +33,7 @@ class ProblemStatusUpdateView(APIView):
     @extend_schema(
         summary="문제 풀이 상태 업데이트",
         description="오늘의 추천 문제 풀이 상태를 백준 API로 자동 확인하여 업데이트합니다. 5분마다 1번만 가능합니다.",
+        request=None,
         responses={
             200: None,
             429: UpdateCooldownErrorSerializer,
@@ -111,9 +112,7 @@ class ProblemStatusView(APIView):
         # Query 파라미터 검증
         serializer = AssignmentStatusQuerySerializer(data=request.query_params)
         if not serializer.is_valid():
-            return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         target_date = serializer.validated_data.get("date")
         view = serializer.validated_data.get("view", "me")
@@ -218,9 +217,7 @@ class StatisticsView(APIView):
         # Query 파라미터 검증
         serializer = StatisticsQuerySerializer(data=request.query_params)
         if not serializer.is_valid():
-            return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         view = serializer.validated_data.get("view", "me")
         member_id = serializer.validated_data.get("member_id")
@@ -246,4 +243,3 @@ class StatisticsView(APIView):
             response_serializer = MemberStatisticsResponseSerializer(instance=result)
 
         return Response(response_serializer.data, status=status.HTTP_200_OK)
-

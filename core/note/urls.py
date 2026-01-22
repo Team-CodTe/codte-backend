@@ -3,6 +3,7 @@ from .views import (
     SolutionNoteView,
     SolutionNoteDetailView,
     SolutionNoteTemplateView,
+    SolutionNoteReviewView,
 )
 
 urlpatterns = [
@@ -20,5 +21,10 @@ urlpatterns = [
         "notes/<int:note_id>/",
         SolutionNoteDetailView.as_view(),
         name="solution_note_detail",
+    ),
+    path(
+        "notes/<int:note_id>/review/",
+        SolutionNoteReviewView.as_view(),
+        name="solution_note_review",
     ),
 ]

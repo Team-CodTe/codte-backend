@@ -1,4 +1,4 @@
-from django.db import IntegrityError, OperationalError
+from django.db import IntegrityError, OperationalError, DatabaseError
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -247,20 +247,22 @@ class TokenRefreshView(APIView):
 
 def _get_test_login_description():
     """테스트 로그인 API 설명을 동적으로 생성"""
-    base_description = "테스트용으로 특정 유저 ID로 로그인합니다. (DEBUG 모드에서만 사용 가능)"
-    
+    base_description = (
+        "테스트용으로 특정 유저 ID로 로그인합니다. (DEBUG 모드에서만 사용 가능)"
+    )
+
     try:
         # 필요한 필드만 조회하여 성능 향상
-        users = User.objects.only("id", "username").order_by('id')
+        users = User.objects.only("id", "username").order_by("id")
         if users.exists():
             # 리스트 컴프리헨션으로 가독성 향상
             user_list = [f"{user.username} : {user.id}" for user in users]
             user_info = "\n\n사용 가능한 유저\n\n" + "\n\n".join(user_list)
             return base_description + user_info
-    except OperationalError:
+    except DatabaseError:
         # DB가 준비되지 않은 경우(예: 마이그레이션 전)를 대비하여 예외 처리
         pass
-    
+
     return base_description
 
 
