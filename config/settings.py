@@ -126,6 +126,9 @@ SIMPLE_JWT = {
     "SIGNING_KEY": SECRET_KEY,
 }
 
+# Gemini API Settings
+GEMINI_API_KEY = config("GEMINI_API_KEY", default="")
+
 ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [

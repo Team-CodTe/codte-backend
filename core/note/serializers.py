@@ -94,3 +94,14 @@ class StudyTemplateContentSerializer(serializers.ModelSerializer):
         model = Study
         fields = ["template_content"]
         read_only_fields = fields
+
+
+class CodeReviewResponseSerializer(serializers.Serializer):
+    """코드 리뷰 Response Serializer"""
+
+    id = serializers.IntegerField(read_only=True, help_text="코드 리뷰 ID")
+    review_content = serializers.CharField(
+        read_only=True, help_text="리뷰 내용 (Markdown)"
+    )
+    created_at = serializers.DateTimeField(read_only=True, help_text="생성일시")
+    updated_at = serializers.DateTimeField(read_only=True, help_text="수정일시")
