@@ -258,13 +258,13 @@ class ProblemSolvingStatus(models.Model):
         return f"{self.user.email} - {self.assignment.problem.title} ({self.assignment.assigned_date}) - {self.get_status_display()}"
 
 
-class CodeReview(models.Model):
-    """AI 코드 리뷰 모델"""
+class SolutionNoteReview(models.Model):
+    """AI 풀이 노트 리뷰 모델"""
 
     solution_note = models.OneToOneField(
         "SolutionNote",
         on_delete=models.CASCADE,
-        related_name="code_review",
+        related_name="solution_note_review",
         verbose_name="풀이 노트",
     )
     review_content = models.TextField(verbose_name="리뷰 내용")
@@ -272,9 +272,9 @@ class CodeReview(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일시")
 
     class Meta:
-        db_table = "code_reviews"
-        verbose_name = "코드 리뷰"
-        verbose_name_plural = "코드 리뷰들"
+        db_table = "solution_note_reviews"
+        verbose_name = "풀이 노트 리뷰"
+        verbose_name_plural = "풀이 노트 리뷰들"
 
     def __str__(self):
         return f"Review for {self.solution_note}"

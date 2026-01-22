@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from core.models import SolutionNote, Study, Problem, StudyMember, DailyAssignment
-from core.models import CodeReview
+from core.models import SolutionNoteReview
 from core.utils.gemini_service import GeminiService
 
 
@@ -247,16 +247,16 @@ class SolutionNoteService:
 
         return study
 
-    def create_code_review(self, user, note_id):
+    def create_solution_note_review(self, user, note_id):
         """
-        AI 코드 리뷰를 생성합니다. 기존 리뷰가 있으면 업데이트합니다.
+        AI 풀이 노트 리뷰를 생성합니다. 기존 리뷰가 있으면 업데이트합니다.
 
         Args:
             user: 리뷰를 요청하는 사용자 (User 인스턴스)
             note_id: 풀이 노트 ID (int)
 
         Returns:
-            CodeReview: 생성된 코드 리뷰 인스턴스
+            SolutionNoteReview: 생성된 풀이 노트 리뷰 인스턴스
 
         Raises:
             Http404: 풀이 노트가 없는 경우
@@ -270,19 +270,21 @@ class SolutionNoteService:
             id=note_id,
         )
 
-        # 작성자만 코드 리뷰 생성 가능
+        # 작성자만 풀이 노트 리뷰 생성 가능
         if solution_note.user != user:
-            raise ValueError("풀이 글 작성자만 코드 리뷰를 요청할 수 있습니다.")
+            raise ValueError("풀이 글 작성자만 풀이 노트 리뷰를 요청할 수 있습니다.")
 
         # 1분 내 재요청 제한 확인
-        existing_review = CodeReview.objects.filter(solution_note=solution_note).first()
+        existing_review = SolutionNoteReview.objects.filter(
+            solution_note=solution_note
+        ).first()
         if existing_review:
             time_since_last_review = timezone.now() - existing_review.updated_at
             if time_since_last_review < timedelta(minutes=1):
                 remaining_seconds = 60 - int(time_since_last_review.total_seconds())
-                raise ValueError(
-                    f"코드 리뷰는 1분에 한 번만 요청할 수 있습니다. {remaining_seconds}초 후에 다시 시도해주세요."
-                )
+            raise ValueError(
+                f"풀이 노트 리뷰는 1분에 한 번만 요청할 수 있습니다. {remaining_seconds}초 후에 다시 시도해주세요."
+            )
 
         # Gemini API로 코드 리뷰 생성
         gemini_service = GeminiService()
@@ -291,23 +293,23 @@ class SolutionNoteService:
         )
 
         # 기존 리뷰가 있으면 업데이트, 없으면 생성
-        code_review, created = CodeReview.objects.update_or_create(
+        solution_note_review, created = SolutionNoteReview.objects.update_or_create(
             solution_note=solution_note,
             defaults={"review_content": review_content},
         )
 
-        return code_review
+        return solution_note_review
 
-    def get_code_review(self, user, note_id):
+    def get_solution_note_review(self, user, note_id):
         """
-        저장된 코드 리뷰를 조회합니다.
+        저장된 풀이 노트 리뷰를 조회합니다.
 
         Args:
             user: 조회하는 사용자 (User 인스턴스)
             note_id: 풀이 노트 ID (int)
 
         Returns:
-            CodeReview: 코드 리뷰 인스턴스 (없으면 None)
+            SolutionNoteReview: 풀이 노트 리뷰 인스턴스 (없으면 None)
 
         Raises:
             Http404: 풀이 노트가 없는 경우
@@ -322,10 +324,14 @@ class SolutionNoteService:
 
         # 스터디 멤버인지 확인
         self._check_study_membership(
-            user, solution_note.study, "스터디 멤버만 코드 리뷰를 조회할 수 있습니다."
+            user,
+            solution_note.study,
+            "스터디 멤버만 풀이 노트 리뷰를 조회할 수 있습니다.",
         )
 
-        # 코드 리뷰 조회 (없으면 None 반환)
-        code_review = CodeReview.objects.filter(solution_note=solution_note).first()
+        # 풀이 노트 리뷰 조회 (없으면 None 반환)
+        solution_note_review = SolutionNoteReview.objects.filter(
+            solution_note=solution_note
+        ).first()
 
-        return code_review
+        return solution_note_review

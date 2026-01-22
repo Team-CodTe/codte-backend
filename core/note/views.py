@@ -12,7 +12,7 @@ from .serializers import (
     SolutionNoteCreateResponseSerializer,
     SolutionNoteResponseSerializer,
     StudyTemplateContentSerializer,
-    CodeReviewResponseSerializer,
+    SolutionNoteReviewResponseSerializer,
 )
 from core.common.serializers import ErrorEnvelopeSerializer
 from core.common.pagination import StandardResultsSetPagination
@@ -295,17 +295,17 @@ class SolutionNoteTemplateView(APIView):
 
 
 @extend_schema(tags=["notes"])
-class CodeReviewView(APIView):
-    """AI 코드 리뷰 생성 및 조회 API"""
+class SolutionNoteReviewView(APIView):
+    """AI 풀이 노트 리뷰 생성 및 조회 API"""
 
     permission_classes = [IsAuthenticated]
     service_class = SolutionNoteService
 
     @extend_schema(
-        summary="AI 코드 리뷰 조회",
-        description="저장된 AI 코드 리뷰를 조회합니다. 스터디 멤버만 조회 가능합니다. 리뷰가 없으면 review: null을 반환합니다.",
+        summary="AI 풀이 노트 리뷰 조회",
+        description="저장된 AI 풀이 노트 리뷰를 조회합니다. 스터디 멤버만 조회 가능합니다. 리뷰가 없으면 review: null을 반환합니다.",
         responses={
-            200: CodeReviewResponseSerializer,
+            200: SolutionNoteReviewResponseSerializer,
             403: ErrorEnvelopeSerializer,
             404: ErrorEnvelopeSerializer,
         },
@@ -313,7 +313,7 @@ class CodeReviewView(APIView):
     def get(self, request, note_id):
         try:
             service = self.service_class()
-            code_review = service.get_code_review(
+            solution_note_review = service.get_solution_note_review(
                 user=request.user,
                 note_id=note_id,
             )
@@ -327,18 +327,18 @@ class CodeReviewView(APIView):
             )
 
         # 리뷰가 없으면 review: null 반환
-        if code_review is None:
+        if solution_note_review is None:
             return Response({"review": None}, status=status.HTTP_200_OK)
 
-        response_serializer = CodeReviewResponseSerializer(code_review)
+        response_serializer = SolutionNoteReviewResponseSerializer(solution_note_review)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
-        summary="AI 코드 리뷰 생성/재생성",
-        description="Gemini API를 사용하여 풀이 노트에 대한 AI 코드 리뷰를 생성합니다. 기존 리뷰가 있으면 재생성됩니다. 노트 작성자만 요청 가능합니다.",
+        summary="AI 풀이 노트 리뷰 생성/재생성",
+        description="Gemini API를 사용하여 풀이 노트에 대한 AI 풀이 노트 리뷰를 생성합니다. 기존 리뷰가 있으면 재생성됩니다. 노트 작성자만 요청 가능합니다.",
         request=None,
         responses={
-            201: CodeReviewResponseSerializer,
+            201: SolutionNoteReviewResponseSerializer,
             403: ErrorEnvelopeSerializer,
             404: ErrorEnvelopeSerializer,
             500: ErrorEnvelopeSerializer,
@@ -347,7 +347,7 @@ class CodeReviewView(APIView):
     def post(self, request, note_id):
         try:
             service = self.service_class()
-            code_review = service.create_code_review(
+            solution_note_review = service.create_solution_note_review(
                 user=request.user,
                 note_id=note_id,
             )
@@ -368,5 +368,5 @@ class CodeReviewView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        response_serializer = CodeReviewResponseSerializer(code_review)
+        response_serializer = SolutionNoteReviewResponseSerializer(solution_note_review)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)

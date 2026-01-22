@@ -96,10 +96,10 @@ class StudyTemplateContentSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class CodeReviewResponseSerializer(serializers.Serializer):
-    """코드 리뷰 Response Serializer"""
+class SolutionNoteReviewResponseSerializer(serializers.Serializer):
+    """풀이 노트 리뷰 Response Serializer"""
 
-    id = serializers.IntegerField(read_only=True, help_text="코드 리뷰 ID")
+    id = serializers.IntegerField(read_only=True, help_text="풀이 노트 리뷰 ID")
     review_content = serializers.CharField(
         read_only=True, help_text="리뷰 내용 (Markdown)"
     )
