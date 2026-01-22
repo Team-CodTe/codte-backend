@@ -13,6 +13,8 @@ from core.utils.gemini_service import GeminiService
 class SolutionNoteService:
     """풀이 노트 관련 비즈니스 로직 서비스"""
 
+    REVIEW_COOLDOWN_MINUTES = 1  # 리뷰 재요청 제한 시간 (분)
+
     def _check_study_membership(self, user, study, error_message):
         """
         스터디 멤버 여부를 확인하고, 멤버가 아닐 경우 ValueError를 발생시킵니다.
@@ -272,7 +274,7 @@ class SolutionNoteService:
 
         # 작성자만 풀이 노트 리뷰 생성 가능
         if solution_note.user != user:
-            raise ValueError("풀이 글 작성자만 풀이 노트 리뷰를 요청할 수 있습니다.")
+            raise ValueError("풀이 글 작성자만 풀이 글 리뷰를 요청할 수 있습니다.")
 
         # 1분 내 재요청 제한 확인
         existing_review = SolutionNoteReview.objects.filter(
@@ -280,11 +282,14 @@ class SolutionNoteService:
         ).first()
         if existing_review:
             time_since_last_review = timezone.now() - existing_review.updated_at
-            if time_since_last_review < timedelta(minutes=1):
-                remaining_seconds = 60 - int(time_since_last_review.total_seconds())
-            raise ValueError(
-                f"풀이 노트 리뷰는 1분에 한 번만 요청할 수 있습니다. {remaining_seconds}초 후에 다시 시도해주세요."
-            )
+            cooldown = timedelta(minutes=self.REVIEW_COOLDOWN_MINUTES)
+            if time_since_last_review < cooldown:
+                remaining_seconds = int(
+                    cooldown.total_seconds() - time_since_last_review.total_seconds()
+                )
+                raise ValueError(
+                    f"풀이 글 리뷰는 {self.REVIEW_COOLDOWN_MINUTES}분에 한 번만 요청할 수 있습니다. {remaining_seconds}초 후에 다시 시도해주세요."
+                )
 
         # Gemini API로 코드 리뷰 생성
         gemini_service = GeminiService()
@@ -326,7 +331,7 @@ class SolutionNoteService:
         self._check_study_membership(
             user,
             solution_note.study,
-            "스터디 멤버만 풀이 노트 리뷰를 조회할 수 있습니다.",
+            "스터디 멤버만 풀이 글 리뷰를 조회할 수 있습니다.",
         )
 
         # 풀이 노트 리뷰 조회 (없으면 None 반환)
