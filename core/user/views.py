@@ -5,8 +5,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import extend_schema
 
+from core.models import Study
 from core.utils.cookie import (
     set_secure_cookie,
+    delete_auth_cookies,
     ACCESS_TOKEN_LIFETIME,
     REFRESH_TOKEN_LIFETIME,
 )
@@ -22,7 +24,7 @@ from core.common.serializers import ErrorEnvelopeSerializer
 
 @extend_schema(tags=["user"])
 class UserMeView(APIView):
-    """현재 로그인한 사용자 정보 조회 API"""
+    """현재 로그인한 사용자 정보 조회 및 탈퇴 API"""
 
     permission_classes = [IsAuthenticated]
 
@@ -34,6 +36,39 @@ class UserMeView(APIView):
     def get(self, request):
         serializer = UserInfoSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="회원 탈퇴",
+        description="현재 로그인한 사용자의 계정을 삭제합니다. 스터디장인 경우 먼저 스터디장 권한을 위임해야 합니다.",
+        responses={
+            204: None,
+            400: ErrorEnvelopeSerializer,
+        },
+    )
+    def delete(self, request):
+        user = request.user
+
+        # 스터디 오너인 경우 탈퇴 불가
+        owned_studies = Study.objects.filter(owner=user)
+        if owned_studies.exists():
+            study_names = list(owned_studies.values_list("name", flat=True))
+            return Response(
+                {
+                    "error_code": "STUDY_OWNER_CANNOT_DELETE",
+                    "message": "스터디장인 스터디가 있어 탈퇴할 수 없습니다. 먼저 스터디장을 위임해주세요.",
+                    "studies": study_names,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 사용자 삭제
+        user.delete()
+
+        # 로그아웃 처리 (쿠키 삭제)
+        response = Response(status=status.HTTP_204_NO_CONTENT)
+        delete_auth_cookies(response)
+
+        return response
 
 
 @extend_schema(tags=["user"])

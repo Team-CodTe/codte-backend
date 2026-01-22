@@ -35,3 +35,15 @@ def set_secure_cookie(response, key, value, max_age):
         max_age: 쿠키 만료 시간 (초 단위)
     """
     response.set_cookie(key, value, **_get_secure_cookie_kwargs(max_age))
+
+
+def delete_auth_cookies(response):
+    """
+    인증 관련 쿠키를 삭제하는 헬퍼 함수
+
+    Args:
+        response: Django Response 객체
+    """
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
+    response.delete_cookie("is_registered")
