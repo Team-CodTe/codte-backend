@@ -1,0 +1,24 @@
+# Render 배포 설정 파일
+# 참고: https://render.com/docs/yaml-spec
+
+services:
+  - type: web
+    name: codte-backend
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn config.wsgi:application"
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        sync: false  # Render 대시보드에서 직접 설정
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false  # Render 대시보드에서 직접 설정
+      - key: DATABASE_URL
+        sync: false  # Render 관리형 DB 연결 시 대시보드에서 설정
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.13.0"
