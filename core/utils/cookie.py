@@ -21,8 +21,8 @@ def _get_secure_cookie_kwargs(max_age):
     """
     kwargs = {
         "httponly": True,
-        "samesite": "Lax",
-        "secure": not settings.DEBUG,
+        "samesite": "None",  # 크로스 도메인 쿠키 전송 허용
+        "secure": True,  # SameSite=None 사용 시 Secure 필수
         "max_age": max_age,
     }
 
