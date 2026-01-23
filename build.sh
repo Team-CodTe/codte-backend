@@ -9,7 +9,7 @@ pip install poetry
 
 # 의존성 설치 (가상환경 없이 시스템에 직접 설치)
 poetry config virtualenvs.create false
-poetry install --without dev --no-interaction --no-ansi
+poetry install --no-interaction --no-ansi
 
 # 정적 파일 수집
 python manage.py collectstatic --no-input
