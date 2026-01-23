@@ -5,12 +5,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import extend_schema
 
-from core.models import Study
 from core.utils.cookie import (
     set_secure_cookie,
     delete_auth_cookies,
     ACCESS_TOKEN_LIFETIME,
     REFRESH_TOKEN_LIFETIME,
+    ACCESS_TOKEN_COOKIE,
+    REFRESH_TOKEN_COOKIE,
+    IS_REGISTERED_COOKIE,
 )
 from .serializers import (
     UserInfoSerializer,
@@ -19,6 +21,7 @@ from .serializers import (
     UsernameValidationSerializer,
     BojUsernameValidationSerializer,
 )
+from .services import UserService
 from core.common.serializers import ErrorEnvelopeSerializer
 
 
@@ -47,22 +50,19 @@ class UserMeView(APIView):
     )
     def delete(self, request):
         user = request.user
+        user_service = UserService()
 
-        # 스터디 오너인 경우 탈퇴 불가
-        owned_studies = Study.objects.filter(owner=user)
-        if owned_studies.exists():
-            study_names = list(owned_studies.values_list("name", flat=True))
+        try:
+            user_service.delete_user(user)
+        except UserService.StudyOwnerCannotDeleteError as e:
+            study_list = ", ".join(e.study_names)
             return Response(
                 {
                     "error_code": "STUDY_OWNER_CANNOT_DELETE",
-                    "message": "스터디장인 스터디가 있어 탈퇴할 수 없습니다. 먼저 스터디장을 위임해주세요.",
-                    "studies": study_names,
+                    "message": f"스터디장인 스터디({study_list})가 있어 탈퇴할 수 없습니다. 먼저 스터디장을 위임해주세요.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        # 사용자 삭제
-        user.delete()
 
         # 로그아웃 처리 (쿠키 삭제)
         response = Response(status=status.HTTP_204_NO_CONTENT)
@@ -110,19 +110,19 @@ class UserProfileView(APIView):
 
             set_secure_cookie(
                 response,
-                "access_token",
+                ACCESS_TOKEN_COOKIE,
                 access_token,
                 max_age=ACCESS_TOKEN_LIFETIME,
             )
             set_secure_cookie(
                 response,
-                "refresh_token",
+                REFRESH_TOKEN_COOKIE,
                 refresh_token,
                 max_age=REFRESH_TOKEN_LIFETIME,
             )
             set_secure_cookie(
                 response,
-                "is_registered",
+                IS_REGISTERED_COOKIE,
                 "true",
                 max_age=REFRESH_TOKEN_LIFETIME,
             )

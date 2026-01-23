@@ -2,10 +2,12 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from drf_spectacular.extensions import OpenApiAuthenticationExtension
 
+from core.utils.cookie import ACCESS_TOKEN_COOKIE
+
 
 class CustomJWTAuthentication(JWTAuthentication):
     def authenticate(self, request):
-        raw_token = request.COOKIES.get("access_token")
+        raw_token = request.COOKIES.get(ACCESS_TOKEN_COOKIE)
 
         if raw_token is None:
             return None
@@ -26,5 +28,5 @@ class CustomJWTAuthenticationExtension(OpenApiAuthenticationExtension):
         return {
             "type": "apiKey",
             "in": "cookie",
-            "name": "access_token",
+            "name": ACCESS_TOKEN_COOKIE,
         }

@@ -14,6 +14,9 @@ from core.utils.cookie import (
     set_secure_cookie,
     ACCESS_TOKEN_LIFETIME,
     REFRESH_TOKEN_LIFETIME,
+    ACCESS_TOKEN_COOKIE,
+    REFRESH_TOKEN_COOKIE,
+    IS_REGISTERED_COOKIE,
 )
 from core.auth.services import SocialLoginService
 from .serializers import (
@@ -106,19 +109,19 @@ class SocialLoginView(APIView):
 
         set_secure_cookie(
             response,
-            "access_token",
+            ACCESS_TOKEN_COOKIE,
             access_token,
             max_age=int(ACCESS_TOKEN_LIFETIME.total_seconds()),
         )
         set_secure_cookie(
             response,
-            "refresh_token",
+            REFRESH_TOKEN_COOKIE,
             refresh_token,
             max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
         )
         set_secure_cookie(
             response,
-            "is_registered",
+            IS_REGISTERED_COOKIE,
             str(is_registered).lower(),
             max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
         )
@@ -142,7 +145,7 @@ class LogoutView(APIView):
         },
     )
     def post(self, request):
-        refresh_token = request.COOKIES.get("refresh_token")
+        refresh_token = request.COOKIES.get(REFRESH_TOKEN_COOKIE)
 
         if refresh_token:
             try:
@@ -159,9 +162,9 @@ class LogoutView(APIView):
 
         response = Response(status=status.HTTP_204_NO_CONTENT)
 
-        response.delete_cookie("access_token")
-        response.delete_cookie("refresh_token")
-        response.delete_cookie("is_registered")
+        response.delete_cookie(ACCESS_TOKEN_COOKIE)
+        response.delete_cookie(REFRESH_TOKEN_COOKIE)
+        response.delete_cookie(IS_REGISTERED_COOKIE)
 
         return response
 
@@ -181,7 +184,7 @@ class TokenRefreshView(APIView):
         },
     )
     def post(self, request):
-        refresh_token = request.COOKIES.get("refresh_token")
+        refresh_token = request.COOKIES.get(REFRESH_TOKEN_COOKIE)
 
         if not refresh_token:
             return Response(
@@ -226,19 +229,19 @@ class TokenRefreshView(APIView):
 
         set_secure_cookie(
             response,
-            "access_token",
+            ACCESS_TOKEN_COOKIE,
             new_access_token,
             max_age=int(ACCESS_TOKEN_LIFETIME.total_seconds()),
         )
         set_secure_cookie(
             response,
-            "refresh_token",
+            REFRESH_TOKEN_COOKIE,
             new_refresh_token,
             max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
         )
         set_secure_cookie(
             response,
-            "is_registered",
+            IS_REGISTERED_COOKIE,
             str(is_registered).lower(),
             max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
         )
@@ -365,19 +368,19 @@ class TestLoginView(APIView):
         # 테스트용 access token 쿠키는 토큰 만료 시간과 동일하게 설정
         set_secure_cookie(
             response,
-            "access_token",
+            ACCESS_TOKEN_COOKIE,
             access_token,
             max_age=int(test_token_lifetime.total_seconds()),
         )
         set_secure_cookie(
             response,
-            "refresh_token",
+            REFRESH_TOKEN_COOKIE,
             refresh_token,
             max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
         )
         set_secure_cookie(
             response,
-            "is_registered",
+            IS_REGISTERED_COOKIE,
             str(is_registered).lower(),
             max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
         )
