@@ -57,7 +57,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # 정적 파일 서빙 (Render 배포용)
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -69,6 +69,12 @@ MIDDLEWARE = [
 
 # CORS 설정
 CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    cast=Csv(),
+)
+
+# CSRF 보호를 위해 신뢰할 수 있는 출처 등록
+CSRF_TRUSTED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
     cast=Csv(),
 )
@@ -220,3 +226,13 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+if not DEBUG:
+    SESSION_COOKIE_DOMAIN = ".codte.kr"
+    CSRF_COOKIE_DOMAIN = ".codte.kr"
+
+    # 보안 설정
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = "None"
+    CSRF_COOKIE_SAMESITE = "None"
