@@ -3,6 +3,11 @@ from django.conf import settings
 ACCESS_TOKEN_LIFETIME = settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]
 REFRESH_TOKEN_LIFETIME = settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
 
+# Cookie names
+ACCESS_TOKEN_COOKIE = "access_token"
+REFRESH_TOKEN_COOKIE = "refresh_token"
+IS_REGISTERED_COOKIE = "is_registered"
+
 
 def _get_secure_cookie_kwargs(max_age):
     """
@@ -35,3 +40,15 @@ def set_secure_cookie(response, key, value, max_age):
         max_age: 쿠키 만료 시간 (초 단위)
     """
     response.set_cookie(key, value, **_get_secure_cookie_kwargs(max_age))
+
+
+def delete_auth_cookies(response):
+    """
+    인증 관련 쿠키를 삭제하는 헬퍼 함수
+
+    Args:
+        response: Django Response 객체
+    """
+    response.delete_cookie(ACCESS_TOKEN_COOKIE)
+    response.delete_cookie(REFRESH_TOKEN_COOKIE)
+    response.delete_cookie(IS_REGISTERED_COOKIE)
