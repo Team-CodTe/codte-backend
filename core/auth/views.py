@@ -12,6 +12,7 @@ from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParamete
 from core.models import User
 from core.utils.cookie import (
     set_secure_cookie,
+    delete_auth_cookies,
     ACCESS_TOKEN_LIFETIME,
     REFRESH_TOKEN_LIFETIME,
     ACCESS_TOKEN_COOKIE,
@@ -162,9 +163,7 @@ class LogoutView(APIView):
 
         response = Response(status=status.HTTP_204_NO_CONTENT)
 
-        response.delete_cookie(ACCESS_TOKEN_COOKIE)
-        response.delete_cookie(REFRESH_TOKEN_COOKIE)
-        response.delete_cookie(IS_REGISTERED_COOKIE)
+        delete_auth_cookies(response)
 
         return response
 
