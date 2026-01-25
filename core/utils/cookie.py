@@ -61,6 +61,8 @@ def delete_auth_cookies(response):
     """
     cookie_options = _get_secure_cookie_kwargs()
     cookie_options.pop("max_age", None)
+    cookie_options.pop("httponly", None)
+    cookie_options.pop("secure", None)
 
     response.delete_cookie(ACCESS_TOKEN_COOKIE, **cookie_options)
     response.delete_cookie(REFRESH_TOKEN_COOKIE, **cookie_options)
