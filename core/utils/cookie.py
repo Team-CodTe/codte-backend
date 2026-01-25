@@ -13,7 +13,7 @@ def _get_secure_cookie_kwargs(max_age=None):
     """
     보안 쿠키 설정을 반환하는 헬퍼 함수
     Args:
-        max_age: 쿠키 만료 시간 (초 단위). 삭제 시에는 None일 수 있음.
+        max_age: 쿠키 만료 시간 (초 단위).
     Returns:
         dict: 쿠키 설정 딕셔너리
     """
@@ -22,14 +22,14 @@ def _get_secure_cookie_kwargs(max_age=None):
     domain = ".codte.kr" if not settings.DEBUG else None
     # 배포: True (HTTPS 필수) / 개발: False (HTTP 허용)
     secure = True if not settings.DEBUG else False
-    # 배포: Lax / 개발: None
-    samesite = "Lax" if not settings.DEBUG else "None"
+    # 배포/개발 모두 Lax
+    samesite = "Lax"
 
     kwargs = {
         "httponly": True,
         "domain": domain,
-        "samesite": samesite,
         "secure": secure,
+        "samesite": samesite,
     }
 
     if max_age is not None:
